@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TETRA · Multiplayer Tetris</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- AUTH -->
+    <section id="auth" class="screen hidden">
+      <h1 class="logo">TETRA</h1>
+      <p class="tagline">Sign in to track your stats &amp; ranking</p>
+
+      <div class="auth-tabs">
+        <button id="tabLogin" class="tab active">Log in</button>
+        <button id="tabRegister" class="tab">Register</button>
+      </div>
+
+      <form id="authForm" class="auth-form" autocomplete="off">
+        <input id="authUser" maxlength="16" placeholder="Username" />
+        <input id="authEmail" type="email" placeholder="Email (optional)" class="hidden" />
+        <input id="authPass" type="password" placeholder="Password" />
+        <p id="authError" class="error"></p>
+        <button id="authSubmit" type="submit" class="btn primary">Log in</button>
+      </form>
+
+      <button id="guestBtn" class="btn">Play as Guest</button>
+    </section>
+
+    <!-- MENU -->
+    <section id="menu" class="screen hidden">
+      <h1 class="logo">TETRA</h1>
+
+      <div class="profile-strip">
+        <div class="avatar" id="avatar">?</div>
+        <div class="profile-info">
+          <b id="profileName">Player</b>
+          <span id="profileMeta">1000 · 0W / 0L</span>
+        </div>
+        <button id="logoutBtn" class="btn small ghost">Log out</button>
+      </div>
+
+      <div class="menu-buttons">
+        <button id="versusBtn" class="btn primary">⚔ Play Online (1v1)</button>
+        <button id="soloBtn" class="btn">▶ Solo Practice</button>
+        <button id="leaderboardBtn" class="btn">🏆 Leaderboard</button>
+      </div>
+
+      <div class="controls-help">
+        <h3>Controls</h3>
+        <ul>
+          <li><kbd>←</kbd> <kbd>→</kbd> Move</li>
+          <li><kbd>↓</kbd> Soft drop</li>
+          <li><kbd>Space</kbd> Hard drop</li>
+          <li><kbd>↑</kbd> / <kbd>X</kbd> Rotate CW</li>
+          <li><kbd>Z</kbd> CCW · <kbd>A</kbd> 180°</li>
+          <li><kbd>C</kbd> / <kbd>Shift</kbd> Hold</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- LEADERBOARD -->
+    <section id="leaderboard" class="screen hidden">
+      <h2>🏆 Leaderboard</h2>
+      <div class="lb-wrap">
+        <table class="lb-table">
+          <thead>
+            <tr><th>#</th><th>Player</th><th>Rating</th><th>W</th><th>L</th><th>Best</th></tr>
+          </thead>
+          <tbody id="lbBody"></tbody>
+        </table>
+      </div>
+      <button id="lbBack" class="btn">Back</button>
+    </section>
+
+    <!-- SEARCHING -->
+    <section id="searching" class="screen hidden">
+      <div class="spinner"></div>
+      <p id="searchText">Connecting…</p>
+      <button id="cancelSearch" class="btn">Cancel</button>
+    </section>
+
+    <!-- GAME -->
+    <section id="game" class="screen hidden">
+      <div class="vs-header"><span id="vsName">Practice</span></div>
+      <div class="arena">
+        <div class="side">
+          <div class="panel">
+            <h4>Hold</h4>
+            <canvas id="hold" width="96" height="72"></canvas>
+          </div>
+          <div class="panel stats">
+            <div><span>Score</span><b id="score">0</b></div>
+            <div><span>Lines</span><b id="lines">0</b></div>
+            <div><span>Incoming</span><b id="pending">0</b></div>
+          </div>
+        </div>
+
+        <div class="board-wrap">
+          <canvas id="board" width="300" height="600"></canvas>
+        </div>
+
+        <div class="side">
+          <div class="panel">
+            <h4>Next</h4>
+            <canvas id="next" width="96" height="240"></canvas>
+          </div>
+          <button id="quitBtn" class="btn small">Quit</button>
+        </div>
+
+        <div class="side opp" id="oppPanel">
+          <div class="panel">
+            <h4 id="oppName">Opponent</h4>
+            <canvas id="oppBoard" width="150" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="result" class="screen hidden">
+      <h2 id="resultTitle">Game Over</h2>
+      <p id="resultNote"></p>
+      <div id="ratingChange" class="rating-change"></div>
+      <div class="final-stats">
+        <div><span>Score</span><b id="finalScore">0</b></div>
+        <div><span>Lines</span><b id="finalLines">0</b></div>
+      </div>
+      <button id="againBtn" class="btn primary">Back to Menu</button>
+    </section>
+
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

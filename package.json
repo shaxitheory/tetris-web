@@ -1,0 +1,29 @@
+{
+  "name": "tetris-web-multiplayer",
+  "version": "1.0.0",
+  "description": "Real-time multiplayer Tetris in the browser, inspired by tetr.io",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "setup": "prisma generate && prisma db push",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate"
+  },
+  "keywords": [
+    "tetris",
+    "multiplayer",
+    "websocket",
+    "game"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.3",
+    "prisma": "^6.19.3",
+    "ws": "^8.18.0"
+  }
+}
