@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>TETRA · Multiplayer Tetris</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -116,6 +116,21 @@
             <h4 id="oppName">Opponent</h4>
             <canvas id="oppBoard" width="150" height="300"></canvas>
           </div>
+        </div>
+      </div>
+
+      <!-- On-screen controls (shown only on touch devices) -->
+      <div id="touchControls" class="touch-controls">
+        <div class="tc-cluster left">
+          <button class="tc-btn" data-act="left" aria-label="Move left">◀</button>
+          <button class="tc-btn" data-act="softdrop" aria-label="Soft drop">▼</button>
+          <button class="tc-btn" data-act="right" aria-label="Move right">▶</button>
+        </div>
+        <div class="tc-cluster right">
+          <button class="tc-btn" data-act="hold" aria-label="Hold">HOLD</button>
+          <button class="tc-btn" data-act="ccw" aria-label="Rotate counter-clockwise">⟲</button>
+          <button class="tc-btn" data-act="cw" aria-label="Rotate clockwise">⟳</button>
+          <button class="tc-btn big" data-act="harddrop" aria-label="Hard drop">⤓</button>
         </div>
       </div>
     </section>

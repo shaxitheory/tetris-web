@@ -102,6 +102,28 @@ export class Game {
   }
   _release(dir) { delete this.keys[dir]; }
 
+  // Called by the on-screen touch buttons. phase is 'start' or 'end'.
+  // Movement buttons reuse the keyboard DAS/ARR state so holding repeats.
+  touchAction(act, phase) {
+    if (!this.engine || !this.running) return;
+    const eng = this.engine;
+    if (phase === 'start') {
+      switch (act) {
+        case 'left':     eng.move(-1, 0); this._press('left'); break;
+        case 'right':    eng.move(1, 0);  this._press('right'); break;
+        case 'softdrop': eng.softDrop();  this._press('soft'); break;
+        case 'cw':       eng.rotate(1); break;
+        case 'ccw':      eng.rotate(-1); break;
+        case 'harddrop': eng.hardDrop(); this._sendState(); break;
+        case 'hold':     eng.holdPiece(); break;
+      }
+    } else {
+      if (act === 'left') this._release('left');
+      else if (act === 'right') this._release('right');
+      else if (act === 'softdrop') this._release('soft');
+    }
+  }
+
   _handleAutoRepeat(dt) {
     const eng = this.engine;
     for (const dir of ['left', 'right']) {

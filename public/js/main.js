@@ -210,6 +210,24 @@ $('quitBtn').addEventListener('click', () => {
   goto('menu');
 });
 
+// ---- Touch controls (bound once; they target whatever game is active) ----
+function bindTouchControls() {
+  document.querySelectorAll('#touchControls .tc-btn').forEach((btn) => {
+    const act = btn.dataset.act;
+    const start = (e) => { e.preventDefault(); game && game.touchAction(act, 'start'); };
+    const end = (e) => { e.preventDefault(); game && game.touchAction(act, 'end'); };
+    btn.addEventListener('touchstart', start, { passive: false });
+    btn.addEventListener('touchend', end, { passive: false });
+    btn.addEventListener('touchcancel', end);
+    // mouse fallback so the buttons also work when testing on desktop
+    btn.addEventListener('mousedown', start);
+    btn.addEventListener('mouseup', end);
+    btn.addEventListener('mouseleave', end);
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  });
+}
+bindTouchControls();
+
 // ---- Boot ----------------------------------------------------------------
 async function boot() {
   setAuthMode('login');

@@ -191,7 +191,63 @@ kbd {
 /* ---- Rating change ---- */
 .rating-change { font-size: 1.3rem; font-weight: 700; min-height: 1.4em; }
 
-@media (max-width: 720px) {
-  .arena { flex-wrap: wrap; }
-  .logo { font-size: 3.4rem; }
+/* ---- Touch controls ---- */
+.board-wrap, #board { touch-action: none; }
+.touch-controls {
+  display: none;                 /* shown only on coarse-pointer (touch) devices */
+  width: 100%;
+  max-width: 460px;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: 12px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (pointer: coarse) { .touch-controls { display: flex; } }
+
+.tc-cluster { display: flex; gap: 10px; align-items: center; }
+.tc-cluster.right { flex-wrap: wrap; justify-content: flex-end; max-width: 190px; }
+.tc-btn {
+  background: var(--panel-2);
+  border: 1px solid #2a3346;
+  color: var(--text);
+  border-radius: 14px;
+  width: 58px; height: 58px;
+  font-size: 1.5rem;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.tc-btn.big { width: 88px; }
+.tc-btn:active { background: var(--accent); color: #07101a; border-color: var(--accent); }
+
+/* ---- Mobile layout ---- */
+@media (max-width: 720px), (pointer: coarse) {
+  body { align-items: flex-start; overflow-y: auto; overscroll-behavior: none; }
+  #app { padding: 8px; }
+  .logo { font-size: 3.2rem; margin-top: 8px; }
+
+  .vs-header { font-size: 0.9rem; margin-bottom: 2px; }
+  .arena { flex-direction: column; align-items: center; gap: 8px; width: 100%; flex-wrap: nowrap; }
+
+  /* HUD panels become compact horizontal strips above/below the board */
+  .side { flex-direction: row; align-items: flex-start; justify-content: center;
+          gap: 8px; width: 100%; flex-wrap: wrap; }
+  .panel { padding: 8px; }
+  .panel h4 { font-size: 0.62rem; }
+
+  /* keep both HUD strips above the board, opponent below it */
+  .board-wrap { order: 3; }
+  .opp { order: 4; }
+
+  #board { width: min(82vw, 300px); height: auto; }
+  #hold { width: 60px; height: 45px; }
+  #next { width: 60px; height: 150px; }
+  #oppBoard { width: 84px; height: 168px; }
+
+  .stats { flex-direction: row; width: auto; gap: 14px; }
+  .stats b { font-size: 1.1rem; }
 }
