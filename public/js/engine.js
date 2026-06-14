@@ -327,7 +327,14 @@ export class Tetris {
   }
 
   dumpGarbage() {
-    if (this.pendingGarbage.length === 0) return;
+    const n = this.pendingGarbage.length;
+    if (n === 0) return;
+    // Garbage rises from the bottom, shoving the stack up by n rows. It's a top
+    // out only if a filled cell in the top n rows would be pushed off the board.
+    let overflow = false;
+    for (let r = 0; r < n && r < ROWS; r++) {
+      if (this.board[r].some((c) => c)) { overflow = true; break; }
+    }
     for (const hole of this.pendingGarbage) {
       this.board.shift();
       const row = new Array(COLS).fill(COLORS.G);
@@ -335,8 +342,7 @@ export class Tetris {
       this.board.push(row);
     }
     this.pendingGarbage = [];
-    // if the active piece now overlaps, it's a top out
-    if (this.collides(this.piece)) {
+    if (overflow) {
       this.gameOver = true;
       this.cb.onGameOver && this.cb.onGameOver();
     }
