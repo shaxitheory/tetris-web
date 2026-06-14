@@ -1,5 +1,6 @@
 // Rendering, input handling, game loop. Wires the engine to the network.
 import { Tetris, COLS, ROWS, COLORS } from './engine.js';
+import { audio } from './audio.js';
 
 const DAS = 120;   // delayed auto shift (ms)
 const ARR = 18;    // auto repeat rate (ms)
@@ -36,13 +37,14 @@ export class Game {
   start(seed) {
     this.engine = new Tetris(seed, {
       onAttack: (amt) => { if (this.net) this.net.send({ type: 'garbage', amount: amt }); this.flash(amt); },
-      onGameOver: () => this.end(),
-      onLock: () => this._sendState(),
+      onGameOver: () => { audio.gameOver(); this.end(); },
+      onLock: (info) => this._onLock(info),
     });
     this.running = true;
     this.lastTime = performance.now();
     this.stateTimer = 0;
     this.attackFlash = 0;
+    audio.startMusic();
     this._loop();
   }
 
@@ -73,17 +75,17 @@ export class Game {
       if (e.repeat) return;
       const eng = this.engine;
       switch (e.key) {
-        case 'ArrowLeft':  this._press('left'); eng.move(-1, 0); break;
-        case 'ArrowRight': this._press('right'); eng.move(1, 0); break;
+        case 'ArrowLeft':  this._press('left'); if (eng.move(-1, 0)) audio.move(); break;
+        case 'ArrowRight': this._press('right'); if (eng.move(1, 0)) audio.move(); break;
         case 'ArrowDown':  this._press('soft'); eng.softDrop(); break;
         case 'ArrowUp':
-        case 'x': case 'X': eng.rotate(1); break;
+        case 'x': case 'X': if (eng.rotate(1)) audio.rotate(); break;
         case 'z': case 'Z':
-        case 'Control': eng.rotate(-1); break;
-        case 'a': case 'A': eng.rotate(1); eng.rotate(1); break;
-        case ' ': eng.hardDrop(); this._sendState(); break;
+        case 'Control': if (eng.rotate(-1)) audio.rotate(); break;
+        case 'a': case 'A': eng.rotate(1); if (eng.rotate(1)) audio.rotate(); break;
+        case ' ': eng.hardDrop(); audio.hardDrop(); this._sendState(); break;
         case 'Shift':
-        case 'c': case 'C': eng.holdPiece(); break;
+        case 'c': case 'C': { const could = eng.canHold && !eng.gameOver; eng.holdPiece(); if (could) audio.hold(); break; }
       }
     };
     this.handleKeyUp = (e) => {
@@ -109,13 +111,13 @@ export class Game {
     const eng = this.engine;
     if (phase === 'start') {
       switch (act) {
-        case 'left':     eng.move(-1, 0); this._press('left'); break;
-        case 'right':    eng.move(1, 0);  this._press('right'); break;
+        case 'left':     if (eng.move(-1, 0)) audio.move(); this._press('left'); break;
+        case 'right':    if (eng.move(1, 0)) audio.move();  this._press('right'); break;
         case 'softdrop': eng.softDrop();  this._press('soft'); break;
-        case 'cw':       eng.rotate(1); break;
-        case 'ccw':      eng.rotate(-1); break;
-        case 'harddrop': eng.hardDrop(); this._sendState(); break;
-        case 'hold':     eng.holdPiece(); break;
+        case 'cw':       if (eng.rotate(1)) audio.rotate(); break;
+        case 'ccw':      if (eng.rotate(-1)) audio.rotate(); break;
+        case 'harddrop': eng.hardDrop(); audio.hardDrop(); this._sendState(); break;
+        case 'hold':     { const could = eng.canHold && !eng.gameOver; eng.holdPiece(); if (could) audio.hold(); break; }
       }
     } else {
       if (act === 'left') this._release('left');
@@ -169,6 +171,13 @@ export class Game {
     });
 
     requestAnimationFrame(() => this._loop());
+  }
+
+  // Called by the engine after a piece locks; plays clear/lock SFX then syncs.
+  _onLock(info = {}) {
+    if (info.cleared > 0) audio.lineClear(info.cleared, info.tspin, info.perfectClear);
+    else audio.lock();
+    this._sendState();
   }
 
   _sendState() {

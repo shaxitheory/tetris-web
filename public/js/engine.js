@@ -276,7 +276,7 @@ export class Tetris {
       this.dumpGarbage(); // garbage only lands when you don't clear
     }
 
-    this.cb.onLock && this.cb.onLock();
+    this.cb.onLock && this.cb.onLock({ cleared, tspin, perfectClear });
     this.canHold = true;
     this.gravityAcc = 0;
     this.spawn();

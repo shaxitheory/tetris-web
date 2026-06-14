@@ -2,6 +2,7 @@
 import { Game } from './game.js';
 import { Net } from './net.js';
 import { api, auth } from './api.js';
+import { audio } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const show = (el) => el.classList.remove('hidden');
@@ -227,6 +228,22 @@ function bindTouchControls() {
   });
 }
 bindTouchControls();
+
+// ---- Sound ---------------------------------------------------------------
+const muteBtn = $('muteBtn');
+muteBtn.textContent = audio.muted ? '🔇' : '🔊';
+muteBtn.addEventListener('click', () => {
+  const muted = audio.toggleMute();
+  muteBtn.textContent = muted ? '🔇' : '🔊';
+});
+// Browsers block audio until the first gesture — unlock on the first interaction.
+function unlockAudio() {
+  audio.unlock();
+  window.removeEventListener('pointerdown', unlockAudio);
+  window.removeEventListener('keydown', unlockAudio);
+}
+window.addEventListener('pointerdown', unlockAudio);
+window.addEventListener('keydown', unlockAudio);
 
 // ---- Boot ----------------------------------------------------------------
 async function boot() {
