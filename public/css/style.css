@@ -135,7 +135,14 @@ kbd {
   box-shadow: 0 0 50px rgba(34, 211, 238, 0.12), inset 0 0 40px rgba(0,0,0,0.6);
   line-height: 0;
 }
-#board { border-radius: 6px; }
+/* Scale the board down to fit the viewport height (keeps its 1:2 shape) so the
+   bottom rows are never clipped on shorter desktop screens. */
+#board {
+  border-radius: 6px;
+  width: auto; height: auto;
+  max-width: 300px;
+  max-height: calc(100vh - 104px);
+}
 
 .opp #oppBoard { border: 1px solid #2a3346; border-radius: 4px; }
 
