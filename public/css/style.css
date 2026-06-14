@@ -302,6 +302,53 @@ kbd {
   animation: fade 0.2s ease;
 }
 
+/* ---- Private room ---- */
+.room-entry { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 280px; }
+.room-entry .btn { width: 100%; }
+.room-or { color: var(--muted); font-size: 0.85rem; }
+.room-join { display: flex; gap: 8px; width: 100%; }
+#roomCodeInput {
+  flex: 1; background: var(--panel); border: 1px solid #2a3346; border-radius: 10px;
+  padding: 12px 16px; color: var(--text); font-size: 1.3rem; letter-spacing: 0.3rem;
+  text-align: center; text-transform: uppercase; outline: none; width: 0;
+}
+#roomCodeInput:focus { border-color: var(--accent); }
+
+.room-lobby { display: flex; flex-direction: column; gap: 12px; width: 460px; max-width: 92vw; }
+.room-head {
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+  background: var(--panel); border: 1px solid #222b3e; border-radius: 12px; padding: 10px 14px;
+}
+.room-code b { color: var(--accent); font-size: 1.3rem; letter-spacing: 0.2rem; margin: 0 6px; }
+.room-members { display: flex; gap: 6px; flex-wrap: wrap; }
+.room-chip {
+  background: var(--panel-2); border: 1px solid #2a3346; border-radius: 20px;
+  padding: 4px 12px; font-size: 0.85rem;
+}
+.room-chip.host { border-color: var(--accent); color: var(--accent); }
+
+.chat-log {
+  height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
+  background: var(--panel); border: 1px solid #222b3e; border-radius: 12px; padding: 12px;
+}
+.chat-system { color: var(--muted); font-size: 0.78rem; text-align: center; font-style: italic; }
+.chat-msg {
+  display: flex; flex-direction: column; max-width: 78%; align-self: flex-start;
+  background: var(--panel-2); border-radius: 12px; padding: 6px 12px;
+}
+.chat-msg.mine { align-self: flex-end; background: linear-gradient(120deg, #1a3a44, #2a2350); }
+.chat-name { font-size: 0.72rem; color: var(--accent); margin-bottom: 2px; }
+.chat-msg.mine .chat-name { color: var(--accent-2); }
+.chat-text { color: var(--text); font-size: 0.92rem; word-break: break-word; }
+.chat-form { display: flex; gap: 8px; }
+.chat-form input {
+  flex: 1; background: var(--panel); border: 1px solid #2a3346; border-radius: 10px;
+  padding: 10px 14px; color: var(--text); font-size: 0.95rem; outline: none; width: 0;
+}
+.chat-form input:focus { border-color: var(--accent); }
+.room-actions { display: flex; gap: 10px; }
+.room-actions .btn { flex: 1; }
+
 /* ---- Mute toggle (always visible, top-right) ---- */
 .mute-btn {
   position: fixed;

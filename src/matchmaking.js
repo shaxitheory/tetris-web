@@ -14,6 +14,9 @@ export function setupGameServer(wss) {
   const online = new Map();      // userId -> ws (for presence + routing challenges)
   const challenges = new Map();  // challengeId -> { from, to, timer }
   let challengeSeq = 1;
+  const rooms = new Map();       // code -> { code, hostId, members:Set<ws> }
+  const ROOM_MAX = 2;
+  let cidSeq = 1;                // stable per-connection id (works for guests too)
 
   const isBusy = (ws) => !!ws.opponent || waiting === ws;
   const registerOnline = (ws) => { if (ws.userId) online.set(ws.userId, ws); };
@@ -31,12 +34,40 @@ export function setupGameServer(wss) {
     }
   }
 
-  function startMatch(a, b) {
+  // ---- private rooms ------------------------------------------------------
+  function genCode() {
+    const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
+    let code;
+    do {
+      code = '';
+      for (let i = 0; i < 4; i++) code += ALPHA[Math.floor(Math.random() * ALPHA.length)];
+    } while (rooms.has(code));
+    return code;
+  }
+  const roomMembers = (room) =>
+    [...room.members].map((m) => ({ id: m.cid, name: m.username, host: m.cid === room.hostId }));
+  function roomBroadcast(room, msg, except = null) {
+    for (const m of room.members) if (m !== except) send(m, msg);
+  }
+  function leaveRoom(ws, notify = true) {
+    const room = ws.room;
+    if (!room) return;
+    room.members.delete(ws);
+    ws.room = null;
+    if (room.members.size === 0) { rooms.delete(room.code); return; }
+    if (room.hostId === ws.cid) room.hostId = [...room.members][0].cid; // pass the crown
+    if (notify) {
+      roomBroadcast(room, { type: 'roomChat', system: true, text: `${ws.username} left` });
+      roomBroadcast(room, { type: 'roomUpdate', code: room.code, hostId: room.hostId, members: roomMembers(room) });
+    }
+  }
+
+  function startMatch(a, b, roomCode = null) {
     const seed = (nextSeed++ * 2654435761) % 2147483647; // shared piece sequence
     a.opponent = b; b.opponent = a;
     a.alive = b.alive = true;
-    send(a, { type: 'matched', seed, opponentName: b.username });
-    send(b, { type: 'matched', seed, opponentName: a.username });
+    send(a, { type: 'matched', seed, opponentName: b.username, room: roomCode });
+    send(b, { type: 'matched', seed, opponentName: a.username, room: roomCode });
   }
 
   function tryQueue(ws) {
@@ -85,6 +116,8 @@ export function setupGameServer(wss) {
     ws.opponent = null;
     ws.lastScore = 0;
     ws.lastLines = 0;
+    ws.room = null;
+    ws.cid = 'c' + (cidSeq++);
 
     ws.on('message', async (data) => {
       let msg;
@@ -152,6 +185,53 @@ export function setupGameServer(wss) {
           break;
         }
 
+        // ---- private rooms ----
+        case 'roomCreate': {
+          leaveRoom(ws, false);
+          const code = genCode();
+          const room = { code, hostId: ws.cid, members: new Set([ws]) };
+          rooms.set(code, room);
+          ws.room = room;
+          send(ws, { type: 'roomCreated', code, youId: ws.cid, hostId: room.hostId, members: roomMembers(room) });
+          break;
+        }
+
+        case 'roomJoin': {
+          const code = String(msg.code || '').toUpperCase().trim();
+          const room = rooms.get(code);
+          if (!room) { send(ws, { type: 'roomError', error: 'Room not found' }); break; }
+          if (room.members.size >= ROOM_MAX) { send(ws, { type: 'roomError', error: 'Room is full' }); break; }
+          leaveRoom(ws, false);
+          room.members.add(ws);
+          ws.room = room;
+          send(ws, { type: 'roomJoined', code, youId: ws.cid, hostId: room.hostId, members: roomMembers(room) });
+          roomBroadcast(room, { type: 'roomChat', system: true, text: `${ws.username} joined` }, ws);
+          roomBroadcast(room, { type: 'roomUpdate', code, hostId: room.hostId, members: roomMembers(room) });
+          break;
+        }
+
+        case 'roomLeave':
+          leaveRoom(ws);
+          break;
+
+        case 'roomChat': {
+          const room = ws.room;
+          if (!room) break;
+          const text = String(msg.text || '').slice(0, 200).trim();
+          if (text) roomBroadcast(room, { type: 'roomChat', fromId: ws.cid, fromName: ws.username, text });
+          break;
+        }
+
+        case 'roomStart': {
+          const room = ws.room;
+          if (!room || room.hostId !== ws.cid) break;
+          if (room.members.size !== 2) { send(ws, { type: 'roomError', error: 'Need 2 players to start' }); break; }
+          const [a, b] = [...room.members];
+          if (isBusy(a) || isBusy(b)) { send(ws, { type: 'roomError', error: 'A player is busy' }); break; }
+          startMatch(a, b, room.code);
+          break;
+        }
+
         case 'queue': {
           const payload = msg.token && verifyToken(msg.token);
           if (payload) {
@@ -186,7 +266,7 @@ export function setupGameServer(wss) {
       }
     });
 
-    ws.on('close', () => { leaveQueueAndRoom(ws); cleanupChallenges(ws); clearOnline(ws); });
-    ws.on('error', () => { leaveQueueAndRoom(ws); cleanupChallenges(ws); clearOnline(ws); });
+    ws.on('close', () => { leaveQueueAndRoom(ws); cleanupChallenges(ws); clearOnline(ws); leaveRoom(ws); });
+    ws.on('error', () => { leaveQueueAndRoom(ws); cleanupChallenges(ws); clearOnline(ws); leaveRoom(ws); });
   });
 }

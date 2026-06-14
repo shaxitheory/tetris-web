@@ -10,9 +10,12 @@ const hide = (el) => el.classList.add('hidden');
 
 const screens = {
   auth: $('auth'), menu: $('menu'), leaderboard: $('leaderboard'),
-  profile: $('profile'), friends: $('friends'),
+  profile: $('profile'), friends: $('friends'), room: $('room'),
   searching: $('searching'), game: $('game'), result: $('result'),
 };
+
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Paint a user's picture into a circle element: image if set, else initial.
 function paintAvatar(el, user) {
@@ -35,6 +38,7 @@ let game = null;
 let net = null;
 let mode = 'solo';
 let me = null;          // current logged-in user object
+let room = null;        // { code, youId, hostId, members } when in a private room
 
 // ---- Profile / menu ------------------------------------------------------
 function renderProfile() {
@@ -153,6 +157,16 @@ function registerNetHandlers() {
   net.on('challengeFailed', (msg) => toast(msg.error || 'Challenge failed'));
   net.on('presence', (msg) => markOnline(msg.online || []));
 
+  // private rooms
+  net.on('roomCreated', (msg) => { room = msg; $('chatLog').innerHTML = ''; renderRoom(); });
+  net.on('roomJoined', (msg) => { room = msg; $('chatLog').innerHTML = ''; renderRoom(); });
+  net.on('roomUpdate', (msg) => { if (room) { room.hostId = msg.hostId; room.members = msg.members; renderRoom(); } });
+  net.on('roomChat', (msg) => addChat(msg));
+  net.on('roomError', (msg) => {
+    if (room) toast(msg.error);
+    else { $('roomError').textContent = msg.error; }
+  });
+
   net.on('close', () => {
     if (mode === 'versus' && !screens.searching.classList.contains('hidden')) {
       $('searchText').textContent = 'Disconnected. Reconnecting…';
@@ -237,6 +251,7 @@ function endMatch(won, note, ratingChange) {
   } else { rc.textContent = ''; }
   $('finalScore').textContent = game ? game.engine.score : 0;
   $('finalLines').textContent = game ? game.engine.lines : 0;
+  $('againBtn').textContent = room ? '↩ Back to Room' : 'Back to Menu';
   goto('result');
 }
 
@@ -459,6 +474,80 @@ $('friends').addEventListener('click', async (e) => {
 $('friendsBtn').addEventListener('click', openFriends);
 $('friendsBack').addEventListener('click', () => goto('menu'));
 
+// ---- Private rooms -------------------------------------------------------
+function renderRoom() {
+  const inRoom = !!room;
+  $('roomEntry').classList.toggle('hidden', inRoom);
+  $('roomLobby').classList.toggle('hidden', !inRoom);
+  if (!inRoom) return;
+  $('roomCodeLabel').textContent = room.code;
+  $('roomMembers').innerHTML = room.members.map((m) =>
+    `<span class="room-chip${m.host ? ' host' : ''}">${m.host ? '👑 ' : ''}${escapeHtml(m.name)}</span>`).join('');
+  const isHost = room.youId === room.hostId;
+  const startBtn = $('roomStart');
+  startBtn.classList.toggle('hidden', !isHost);
+  const ready = room.members.length === 2;
+  startBtn.disabled = !ready;
+  startBtn.textContent = ready ? '⚔ Start Match' : 'Waiting for a player…';
+}
+
+function addChat(msg) {
+  const log = $('chatLog');
+  const div = document.createElement('div');
+  if (msg.system) {
+    div.className = 'chat-system';
+    div.textContent = msg.text;
+  } else {
+    const mine = room && msg.fromId === room.youId;
+    div.className = 'chat-msg' + (mine ? ' mine' : '');
+    div.innerHTML = `<span class="chat-name">${mine ? 'You' : escapeHtml(msg.fromName)}</span>` +
+                    `<span class="chat-text">${escapeHtml(msg.text)}</span>`;
+  }
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function openRoom() {
+  $('roomError').textContent = '';
+  ensureNet();
+  renderRoom();
+  goto('room');
+}
+
+function leaveRoomNow() {
+  if (net && room) net.send({ type: 'roomLeave' });
+  room = null;
+}
+
+$('roomBtn').addEventListener('click', openRoom);
+$('roomCreate').addEventListener('click', async () => {
+  $('roomError').textContent = '';
+  if (!(await ensureNet())) return ($('roomError').textContent = 'Could not reach server.');
+  net.send({ type: 'roomCreate' });
+});
+$('roomJoinForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = $('roomCodeInput').value.toUpperCase().trim();
+  $('roomError').textContent = '';
+  if (!code) return;
+  if (!(await ensureNet())) return ($('roomError').textContent = 'Could not reach server.');
+  net.send({ type: 'roomJoin', code });
+});
+$('chatForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = $('chatInput').value.trim();
+  if (!text || !net) return;
+  net.send({ type: 'roomChat', text });
+  $('chatInput').value = '';
+});
+$('roomStart').addEventListener('click', () => { if (net) net.send({ type: 'roomStart' }); });
+$('roomCopy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(room.code); toast('Code copied'); }
+  catch { toast(room.code); }
+});
+$('roomLeave').addEventListener('click', () => { leaveRoomNow(); renderRoom(); });
+$('roomBack').addEventListener('click', () => { leaveRoomNow(); goto('menu'); });
+
 // ---- Buttons -------------------------------------------------------------
 $('soloBtn').addEventListener('click', startSolo);
 $('versusBtn').addEventListener('click', startVersus);
@@ -471,12 +560,12 @@ $('cancelSearch').addEventListener('click', () => {
 $('againBtn').addEventListener('click', () => {
   if (game) game.destroy();
   refreshFriendBadge();
-  goto('menu');
+  if (room) { renderRoom(); goto('room'); } else goto('menu');
 });
 $('quitBtn').addEventListener('click', () => {
   if (game) { game.stop(); game.destroy(); }
-  if (net) net.send({ type: 'leave' });   // leave the room, stay online
-  goto('menu');
+  if (net) net.send({ type: 'leave' });   // leave the match, stay online
+  if (room) { renderRoom(); goto('room'); } else goto('menu');
 });
 
 // ---- Touch controls (bound once; they target whatever game is active) ----

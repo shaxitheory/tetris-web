@@ -62,6 +62,7 @@
 
       <div class="menu-buttons">
         <button id="versusBtn" class="btn primary">⚔ Play Online (1v1)</button>
+        <button id="roomBtn" class="btn">🚪 Private Room</button>
         <button id="soloBtn" class="btn">▶ Solo Practice</button>
         <button id="friendsBtn" class="btn">👥 Friends<span id="friendsBadge" class="badge hidden">0</span></button>
         <button id="leaderboardBtn" class="btn">🏆 Leaderboard</button>
@@ -131,6 +132,42 @@
         <div id="friendList" class="person-list"><p class="muted empty">No friends yet — search above to add some.</p></div>
       </div>
       <button id="friendsBack" class="btn">Back</button>
+    </section>
+
+    <!-- ROOM -->
+    <section id="room" class="screen hidden">
+      <h2>🚪 Private Room</h2>
+
+      <!-- before you're in a room -->
+      <div id="roomEntry" class="room-entry">
+        <button id="roomCreate" class="btn primary">Create a Room</button>
+        <div class="room-or">or join with a code</div>
+        <form id="roomJoinForm" class="room-join">
+          <input id="roomCodeInput" maxlength="4" placeholder="CODE" autocomplete="off" />
+          <button type="submit" class="btn">Join</button>
+        </form>
+        <p id="roomError" class="error"></p>
+      </div>
+
+      <!-- inside a room -->
+      <div id="roomLobby" class="room-lobby hidden">
+        <div class="room-head">
+          <div class="room-code">Code: <b id="roomCodeLabel">----</b>
+            <button id="roomCopy" class="btn small ghost">Copy</button></div>
+          <div id="roomMembers" class="room-members"></div>
+        </div>
+        <div id="chatLog" class="chat-log"></div>
+        <form id="chatForm" class="chat-form" autocomplete="off">
+          <input id="chatInput" placeholder="Type a message…" maxlength="200" />
+          <button type="submit" class="btn small primary">Send</button>
+        </form>
+        <div class="room-actions">
+          <button id="roomStart" class="btn primary">Start Match</button>
+          <button id="roomLeave" class="btn ghost">Leave Room</button>
+        </div>
+      </div>
+
+      <button id="roomBack" class="btn">Back</button>
     </section>
 
     <!-- SEARCHING -->
