@@ -196,58 +196,99 @@ kbd {
 .touch-controls {
   display: none;                 /* shown only on coarse-pointer (touch) devices */
   width: 100%;
-  max-width: 460px;
+  max-width: 520px;
   justify-content: space-between;
-  align-items: flex-end;
-  gap: 14px;
-  margin-top: 12px;
+  align-items: center;
+  gap: 12px;
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
 }
 @media (pointer: coarse) { .touch-controls { display: flex; } }
 
-.tc-cluster { display: flex; gap: 10px; align-items: center; }
-.tc-cluster.right { flex-wrap: wrap; justify-content: flex-end; max-width: 190px; }
+.tc-cluster { display: flex; gap: 8px; align-items: center; }
+.tc-cluster.right { flex-wrap: wrap; justify-content: flex-end; max-width: 200px; }
 .tc-btn {
   background: var(--panel-2);
   border: 1px solid #2a3346;
   color: var(--text);
   border-radius: 14px;
-  width: 58px; height: 58px;
-  font-size: 1.5rem;
+  width: 52px; height: 52px;
+  font-size: 1.4rem;
   display: flex; align-items: center; justify-content: center;
   touch-action: none;
   -webkit-user-select: none; user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-.tc-btn.big { width: 88px; }
+.tc-btn.big { width: 80px; }
 .tc-btn:active { background: var(--accent); color: #07101a; border-color: var(--accent); }
 
-/* ---- Mobile layout ---- */
+/* ---- Mobile layout: fit the whole game in one viewport, no scrolling ---- */
 @media (max-width: 720px), (pointer: coarse) {
-  body { align-items: flex-start; overflow-y: auto; overscroll-behavior: none; }
-  #app { padding: 8px; }
-  .logo { font-size: 3.2rem; margin-top: 8px; }
+  body { align-items: flex-start; overflow: hidden; }
+  #app { padding: 0; width: 100%; height: 100vh; height: 100dvh; }
+  .logo { font-size: 3rem; margin-top: 6px; }
 
-  .vs-header { font-size: 0.9rem; margin-bottom: 2px; }
-  .arena { flex-direction: column; align-items: center; gap: 8px; width: 100%; flex-wrap: nowrap; }
+  /* non-game screens (auth/menu/leaderboard/result) still scroll if tall */
+  .screen:not(#game) {
+    min-height: 100vh; min-height: 100dvh;
+    justify-content: center; padding: 16px 8px; overflow-y: auto;
+  }
 
-  /* HUD panels become compact horizontal strips above/below the board */
-  .side { flex-direction: row; align-items: flex-start; justify-content: center;
-          gap: 8px; width: 100%; flex-wrap: wrap; }
-  .panel { padding: 8px; }
-  .panel h4 { font-size: 0.62rem; }
+  /* GAME screen is a full-height column; controls pinned to the bottom */
+  #game {
+    height: 100vh; height: 100dvh;
+    width: 100%;
+    padding: 6px 6px 122px;       /* bottom room for the fixed control bar */
+    gap: 4px;
+    justify-content: flex-start;
+  }
+  .vs-header { font-size: 0.85rem; margin: 2px 0; flex: 0 0 auto; }
 
-  /* keep both HUD strips above the board, opponent below it */
-  .board-wrap { order: 3; }
-  .opp { order: 4; }
+  /* HUD pieces sit in a compact top bar; the board wraps onto its own line */
+  .arena {
+    flex-flow: row wrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .side {
+    order: 1; flex: 0 1 auto;
+    flex-direction: row; align-items: center; justify-content: center; gap: 8px;
+  }
+  .panel { padding: 6px 8px; flex-direction: row; align-items: center; gap: 8px; }
+  .panel h4 { font-size: 0.58rem; }
+  .stats { flex-direction: row; width: auto; gap: 12px; }
+  .stats b { font-size: 1rem; }
 
-  #board { width: min(82vw, 300px); height: auto; }
-  #hold { width: 60px; height: 45px; }
-  #next { width: 60px; height: 150px; }
-  #oppBoard { width: 84px; height: 168px; }
+  #hold { width: 46px; height: 34px; }
+  #next { width: 46px; height: 116px; }
 
-  .stats { flex-direction: row; width: auto; gap: 14px; }
-  .stats b { font-size: 1.1rem; }
+  /* board fills the remaining height, preserving its 1:2 aspect ratio */
+  .board-wrap {
+    order: 2; flex: 0 0 100%;
+    display: flex; justify-content: center; min-height: 0;
+  }
+  #board {
+    width: auto; height: auto;
+    max-width: 92vw;
+    max-height: calc(100dvh - 260px);
+  }
+
+  .opp { order: 3; flex: 0 0 100%; display: flex; justify-content: center; }
+  #oppBoard { width: 64px; height: 128px; }
+
+  /* pin the controls to the bottom edge — always reachable, never scrolled off */
+  .touch-controls {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    width: 100%; max-width: none; margin: 0;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(7, 10, 20, 0.97), rgba(7, 10, 20, 0.72));
+    backdrop-filter: blur(4px);
+    z-index: 50;
+  }
 }
