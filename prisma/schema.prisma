@@ -16,6 +16,7 @@ model User {
   email        String?  @unique
   passwordHash String?
   isGuest      Boolean  @default(false)
+  avatar       String?  // small profile picture as a data URL (base64)
 
   // ranking + lifetime stats
   rating      Int @default(1000)
@@ -28,6 +29,24 @@ model User {
 
   createdAt    DateTime      @default(now())
   matchPlayers MatchPlayer[]
+
+  // friendships (either side of the relation)
+  sentRequests     Friendship[] @relation("FriendRequester")
+  receivedRequests Friendship[] @relation("FriendAddressee")
+}
+
+// A friend link. status: "pending" (requester -> addressee) or "accepted".
+model Friendship {
+  id          String   @id @default(cuid())
+  requester   User     @relation("FriendRequester", fields: [requesterId], references: [id])
+  requesterId String
+  addressee   User     @relation("FriendAddressee", fields: [addresseeId], references: [id])
+  addresseeId String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
 }
 
 model Match {

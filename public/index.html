@@ -36,7 +36,7 @@
       <h1 class="logo">TETRA</h1>
 
       <div class="profile-strip">
-        <div class="avatar" id="avatar">?</div>
+        <button class="avatar" id="avatar" title="Edit profile">?</button>
         <div class="profile-info">
           <b id="profileName">Player</b>
           <span id="profileMeta">1000 · 0W / 0L</span>
@@ -47,7 +47,9 @@
       <div class="menu-buttons">
         <button id="versusBtn" class="btn primary">⚔ Play Online (1v1)</button>
         <button id="soloBtn" class="btn">▶ Solo Practice</button>
+        <button id="friendsBtn" class="btn">👥 Friends<span id="friendsBadge" class="badge hidden">0</span></button>
         <button id="leaderboardBtn" class="btn">🏆 Leaderboard</button>
+        <button id="profileBtn" class="btn">😀 My Profile</button>
       </div>
 
       <div class="controls-help">
@@ -75,6 +77,44 @@
         </table>
       </div>
       <button id="lbBack" class="btn">Back</button>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="profile" class="screen hidden">
+      <h2>My Profile</h2>
+      <div class="profile-card">
+        <div class="dp" id="dpImg">?</div>
+        <div class="dp-actions">
+          <button id="dpUpload" class="btn small">Change picture</button>
+          <button id="dpRemove" class="btn small ghost">Remove</button>
+          <input id="dpFile" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" />
+        </div>
+        <b id="pfName" class="pf-name">Player</b>
+        <span id="pfMeta" class="muted"></span>
+        <div class="final-stats">
+          <div><span>Rating</span><b id="pfRating">1000</b></div>
+          <div><span>Games</span><b id="pfGames">0</b></div>
+          <div><span>Best</span><b id="pfBest">0</b></div>
+        </div>
+        <p id="dpError" class="error"></p>
+      </div>
+      <button id="profileBack" class="btn">Back</button>
+    </section>
+
+    <!-- FRIENDS -->
+    <section id="friends" class="screen hidden">
+      <h2>👥 Friends</h2>
+      <div class="friends-wrap">
+        <input id="friendSearch" class="friend-search" placeholder="Search players by username…" />
+        <div id="searchResults" class="person-list"></div>
+
+        <h3 class="friend-section">Requests <span id="reqCount" class="muted"></span></h3>
+        <div id="requestList" class="person-list"><p class="muted empty">No pending requests.</p></div>
+
+        <h3 class="friend-section">My Friends</h3>
+        <div id="friendList" class="person-list"><p class="muted empty">No friends yet — search above to add some.</p></div>
+      </div>
+      <button id="friendsBack" class="btn">Back</button>
     </section>
 
     <!-- SEARCHING -->

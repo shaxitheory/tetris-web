@@ -41,4 +41,15 @@ export const api = {
   leaderboard: () => req('GET', '/api/leaderboard'),
   profile: (username) => req('GET', `/api/users/${encodeURIComponent(username)}`),
   postSolo: (score, lines) => req('POST', '/api/solo', { score, lines }),
+
+  // profile picture
+  updateAvatar: (avatar) => req('PUT', '/api/auth/avatar', { avatar }),
+
+  // friends
+  searchUsers: (q) => req('GET', `/api/users-search?q=${encodeURIComponent(q)}`),
+  friends: () => req('GET', '/api/friends'),
+  friendRequests: () => req('GET', '/api/friends/requests'),
+  sendFriendRequest: (username) => req('POST', '/api/friends/request', { username }),
+  respondFriendRequest: (id, accept) => req('POST', '/api/friends/respond', { id, accept }),
+  removeFriend: (userId) => req('DELETE', `/api/friends/${encodeURIComponent(userId)}`),
 };

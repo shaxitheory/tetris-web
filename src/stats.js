@@ -14,7 +14,7 @@ statsRouter.get('/leaderboard', async (req, res) => {
   });
   res.json({
     leaderboard: users.map((u, i) => ({
-      rank: i + 1, username: u.username, rating: u.rating,
+      rank: i + 1, username: u.username, rating: u.rating, avatar: u.avatar || null,
       wins: u.wins, losses: u.losses, gamesPlayed: u.gamesPlayed, bestScore: u.bestScore,
     })),
   });

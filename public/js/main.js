@@ -10,8 +10,22 @@ const hide = (el) => el.classList.add('hidden');
 
 const screens = {
   auth: $('auth'), menu: $('menu'), leaderboard: $('leaderboard'),
+  profile: $('profile'), friends: $('friends'),
   searching: $('searching'), game: $('game'), result: $('result'),
 };
+
+// Paint a user's picture into a circle element: image if set, else initial.
+function paintAvatar(el, user) {
+  if (user && user.avatar) {
+    el.style.backgroundImage = `url("${user.avatar}")`;
+    el.classList.add('has-img');
+    el.textContent = '';
+  } else {
+    el.style.backgroundImage = '';
+    el.classList.remove('has-img');
+    el.textContent = (user?.username?.[0] || '?').toUpperCase();
+  }
+}
 function goto(name) {
   for (const s of Object.values(screens)) hide(s);
   show(screens[name]);
@@ -27,7 +41,7 @@ function renderProfile() {
   if (!me) return;
   $('profileName').textContent = me.username + (me.isGuest ? ' (guest)' : '');
   $('profileMeta').textContent = `${me.rating} · ${me.wins}W / ${me.losses}L · best ${me.bestScore}`;
-  $('avatar').textContent = me.username[0]?.toUpperCase() || '?';
+  paintAvatar($('avatar'), me);
 }
 
 async function refreshProfile() {
@@ -38,6 +52,7 @@ function enterMenu(user) {
   me = user;
   auth.save(null, user);
   renderProfile();
+  refreshFriendBadge();
   goto('menu');
 }
 
@@ -181,13 +196,184 @@ async function openLeaderboard() {
     if (!leaderboard.length) { body.innerHTML = '<tr><td colspan="6">No players yet.</td></tr>'; return; }
     body.innerHTML = leaderboard.map((r) => {
       const meRow = me && r.username === me.username ? ' class="me"' : '';
-      return `<tr${meRow}><td>${r.rank}</td><td>${r.username}</td><td>${r.rating}</td>` +
+      const av = r.avatar
+        ? `<span class="lb-av has-img" style="background-image:url('${r.avatar}')"></span>`
+        : `<span class="lb-av">${(r.username[0] || '?').toUpperCase()}</span>`;
+      return `<tr${meRow}><td>${r.rank}</td>` +
+             `<td><div class="lb-user">${av}${r.username}</div></td><td>${r.rating}</td>` +
              `<td>${r.wins}</td><td>${r.losses}</td><td>${r.bestScore}</td></tr>`;
     }).join('');
   } catch (e) {
     body.innerHTML = `<tr><td colspan="6">${e.message}</td></tr>`;
   }
 }
+
+// ---- Profile + display picture -------------------------------------------
+function openProfile() {
+  if (!me) return;
+  paintAvatar($('dpImg'), me);
+  $('pfName').textContent = me.username + (me.isGuest ? ' (guest)' : '');
+  $('pfMeta').textContent = me.isGuest ? 'Guest account' : `Joined player`;
+  $('pfRating').textContent = me.rating;
+  $('pfGames').textContent = me.gamesPlayed;
+  $('pfBest').textContent = me.bestScore;
+  $('dpError').textContent = '';
+  $('dpRemove').classList.toggle('hidden', !me.avatar);
+  goto('profile');
+}
+
+// Shrink + center-crop an image file to a small square data URL (keeps payloads tiny).
+function fileToAvatar(file, size = 128) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that image')); };
+    img.src = url;
+  });
+}
+
+$('avatar').addEventListener('click', openProfile);
+$('profileBtn').addEventListener('click', openProfile);
+$('profileBack').addEventListener('click', () => goto('menu'));
+$('dpUpload').addEventListener('click', () => $('dpFile').click());
+$('dpFile').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  $('dpError').textContent = '';
+  try {
+    const dataUrl = await fileToAvatar(file);
+    me = (await api.updateAvatar(dataUrl)).user;
+    auth.save(null, me);
+    paintAvatar($('dpImg'), me);
+    paintAvatar($('avatar'), me);
+    $('dpRemove').classList.remove('hidden');
+  } catch (err) {
+    $('dpError').textContent = err.message;
+  }
+});
+$('dpRemove').addEventListener('click', async () => {
+  try {
+    me = (await api.updateAvatar(null)).user;
+    auth.save(null, me);
+    paintAvatar($('dpImg'), me);
+    paintAvatar($('avatar'), me);
+    $('dpRemove').classList.add('hidden');
+  } catch (err) { $('dpError').textContent = err.message; }
+});
+
+// ---- Friends -------------------------------------------------------------
+// Builds one person row. `actions` is HTML for the right-hand buttons/labels.
+function personRow(u, actions) {
+  const img = u.avatar
+    ? `style="background-image:url('${u.avatar}')" class="person-av has-img"`
+    : `class="person-av"`;
+  const initial = u.avatar ? '' : (u.username[0] || '?').toUpperCase();
+  return `<div class="person">
+    <div ${img}>${initial}</div>
+    <div class="person-info"><b>${u.username}</b><span>${u.rating} rating${u.isGuest ? ' · guest' : ''}</span></div>
+    <div class="person-actions">${actions}</div>
+  </div>`;
+}
+
+const searchAction = {
+  none:      (u) => `<button class="btn small" data-act="add" data-username="${u.username}">Add</button>`,
+  requested: ()  => `<span class="muted tag">Requested</span>`,
+  incoming:  (u) => `<button class="btn small primary" data-act="add" data-username="${u.username}">Accept</button>`,
+  friends:   ()  => `<span class="muted tag">✓ Friends</span>`,
+};
+
+async function refreshFriendBadge() {
+  if (!me) return;
+  try {
+    const { requests } = await api.friendRequests();
+    const n = requests.length;
+    const badge = $('friendsBadge');
+    badge.textContent = n;
+    badge.classList.toggle('hidden', n === 0);
+    return requests;
+  } catch { return []; }
+}
+
+async function renderRequestsAndFriends() {
+  // requests
+  const requests = (await refreshFriendBadge()) || [];
+  $('reqCount').textContent = requests.length ? `(${requests.length})` : '';
+  $('requestList').innerHTML = requests.length
+    ? requests.map((r) => personRow(r.user,
+        `<button class="btn small primary" data-act="accept" data-id="${r.id}">Accept</button>` +
+        `<button class="btn small ghost" data-act="decline" data-id="${r.id}">✕</button>`)).join('')
+    : '<p class="muted empty">No pending requests.</p>';
+
+  // friends
+  try {
+    const { friends } = await api.friends();
+    $('friendList').innerHTML = friends.length
+      ? friends.map((u) => personRow(u,
+          `<button class="btn small ghost" data-act="remove" data-id="${u.id}">Remove</button>`)).join('')
+      : '<p class="muted empty">No friends yet — search above to add some.</p>';
+  } catch {}
+}
+
+async function openFriends() {
+  $('friendSearch').value = '';
+  $('searchResults').innerHTML = '';
+  goto('friends');
+  renderRequestsAndFriends();
+}
+
+let searchTimer = null;
+async function doSearch(q) {
+  if (!q) { $('searchResults').innerHTML = ''; return; }
+  try {
+    const { results } = await api.searchUsers(q);
+    $('searchResults').innerHTML = results.length
+      ? results.map((u) => personRow(u, (searchAction[u.status] || searchAction.none)(u))).join('')
+      : '<p class="muted empty">No players found.</p>';
+  } catch (e) {
+    $('searchResults').innerHTML = `<p class="error">${e.message}</p>`;
+  }
+}
+
+$('friendSearch').addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => doSearch(q), 250);
+});
+
+// One delegated handler for all add/accept/decline/remove buttons.
+$('friends').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const { act, id, username } = btn.dataset;
+  btn.disabled = true;
+  try {
+    if (act === 'add')      await api.sendFriendRequest(username);
+    else if (act === 'accept')  await api.respondFriendRequest(id, true);
+    else if (act === 'decline') await api.respondFriendRequest(id, false);
+    else if (act === 'remove')  await api.removeFriend(id);
+    // refresh whichever lists are showing
+    const q = $('friendSearch').value.trim();
+    if (q) doSearch(q);
+    renderRequestsAndFriends();
+  } catch (err) {
+    btn.disabled = false;
+    alert(err.message);
+  }
+});
+
+$('friendsBtn').addEventListener('click', openFriends);
+$('friendsBack').addEventListener('click', () => goto('menu'));
 
 // ---- Buttons -------------------------------------------------------------
 $('soloBtn').addEventListener('click', startSolo);

@@ -21,7 +21,7 @@ export function publicUser(u) {
   return {
     id: u.id, username: u.username, isGuest: u.isGuest, rating: u.rating,
     gamesPlayed: u.gamesPlayed, wins: u.wins, losses: u.losses,
-    totalLines: u.totalLines, bestScore: u.bestScore,
+    totalLines: u.totalLines, bestScore: u.bestScore, avatar: u.avatar || null,
   };
 }
 
@@ -89,4 +89,21 @@ authRouter.post('/guest', async (req, res) => {
 // --- Who am I (refresh profile) --------------------------------------------
 authRouter.get('/me', requireAuth, (req, res) => {
   res.json({ user: publicUser(req.user) });
+});
+
+// --- Set / clear profile picture -------------------------------------------
+// The client sends a small (resized) image as a data URL, or null to remove it.
+authRouter.put('/avatar', requireAuth, async (req, res) => {
+  const { avatar } = req.body || {};
+  if (avatar != null) {
+    if (typeof avatar !== 'string' || !/^data:image\/(png|jpeg|webp);base64,/.test(avatar)) {
+      return res.status(400).json({ error: 'Invalid image' });
+    }
+    if (avatar.length > 400000) return res.status(413).json({ error: 'Image too large' });
+  }
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { avatar: avatar || null },
+  });
+  res.json({ user: publicUser(user) });
 });

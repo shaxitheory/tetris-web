@@ -13,6 +13,7 @@ import { dirname, join } from 'path';
 
 import { authRouter, requireAuth, publicUser } from './src/auth.js';
 import { statsRouter } from './src/stats.js';
+import { friendsRouter } from './src/friends.js';
 import { setupGameServer } from './src/matchmaking.js';
 import { prisma } from './src/db.js';
 
@@ -20,12 +21,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '2mb' })); // headroom for base64 avatar uploads
 app.use(express.static(join(__dirname, 'public')));
 
 // REST API
 app.use('/api/auth', authRouter);
 app.use('/api', statsRouter);
+app.use('/api', friendsRouter);
 
 // Record a finished solo game (best score / totals only, no rating change).
 app.post('/api/solo', requireAuth, async (req, res) => {
