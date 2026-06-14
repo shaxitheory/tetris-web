@@ -239,47 +239,46 @@ kbd {
   #game {
     height: 100vh; height: 100dvh;
     width: 100%;
-    padding: 6px 6px 122px;       /* bottom room for the fixed control bar */
+    padding: 6px 6px 138px;       /* bottom room for the fixed control bar */
     gap: 4px;
     justify-content: flex-start;
   }
   .vs-header { font-size: 0.85rem; margin: 2px 0; flex: 0 0 auto; }
 
-  /* HUD pieces sit in a compact top bar; the board wraps onto its own line */
+  /* column: compact HUD rows on top, board fills the EXACT leftover height */
   .arena {
-    flex-flow: row wrap;
-    align-items: flex-start;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
     gap: 6px;
     width: 100%;
     flex: 1 1 auto;
     min-height: 0;
   }
   .side {
-    order: 1; flex: 0 1 auto;
-    flex-direction: row; align-items: center; justify-content: center; gap: 8px;
+    flex: 0 0 auto;
+    flex-direction: row; align-items: center; justify-content: center;
+    gap: 8px; width: 100%; flex-wrap: wrap;
   }
-  .panel { padding: 6px 8px; flex-direction: row; align-items: center; gap: 8px; }
-  .panel h4 { font-size: 0.58rem; }
+  .panel { padding: 5px 8px; flex-direction: row; align-items: center; gap: 8px; }
+  .panel h4 { font-size: 0.56rem; }
   .stats { flex-direction: row; width: auto; gap: 12px; }
   .stats b { font-size: 1rem; }
 
-  #hold { width: 46px; height: 34px; }
-  #next { width: 46px; height: 116px; }
+  /* small previews that keep their native aspect ratio (hold 4:3, next 2:5) */
+  #hold { width: 44px; height: 33px; }
+  #next { width: 40px; height: 100px; }
 
-  /* board fills the remaining height, preserving its 1:2 aspect ratio */
+  /* board flex-fills whatever height remains, never overflowing the controls */
   .board-wrap {
-    order: 2; flex: 0 0 100%;
-    display: flex; justify-content: center; min-height: 0;
+    flex: 1 1 0; min-height: 0;
+    display: flex; justify-content: center; align-items: center;
+    width: 100%;
   }
-  #board {
-    width: auto; height: auto;
-    max-width: 92vw;
-    max-height: calc(100dvh - 260px);
-  }
+  #board { height: 100%; width: auto; max-width: 96vw; }
 
-  .opp { order: 3; flex: 0 0 100%; display: flex; justify-content: center; }
-  #oppBoard { width: 64px; height: 128px; }
+  .opp { flex: 0 0 auto; display: flex; justify-content: center; }
+  #oppBoard { width: 56px; height: 112px; }
 
   /* pin the controls to the bottom edge — always reachable, never scrolled off */
   .touch-controls {
