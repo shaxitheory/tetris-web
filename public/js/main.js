@@ -53,6 +53,7 @@ function enterMenu(user) {
   auth.save(null, user);
   renderProfile();
   refreshFriendBadge();
+  ensureNet();               // go online so friends can challenge us
   goto('menu');
 }
 
@@ -98,6 +99,9 @@ $('guestBtn').addEventListener('click', async () => {
 });
 
 $('logoutBtn').addEventListener('click', () => {
+  loggingOut = true;
+  teardownNet();
+  loggingOut = false;
   auth.clear();
   me = null;
   goto('auth');
@@ -117,10 +121,107 @@ function buildGame(withNet, onEnd) {
   });
 }
 
+// ---- Persistent lobby connection ----------------------------------------
+// One WebSocket stays open while you're logged in so the server knows you're
+// online and can deliver friend challenges. It's reused for queueing + matches.
+let netConnecting = false;
+let loggingOut = false;
+let incomingChallenge = null;   // { challengeId, fromName }
+
+function registerNetHandlers() {
+  net.on('queued', () => { $('searchText').textContent = 'Waiting for an opponent…'; });
+  net.on('matched', (msg) => {
+    mode = 'versus';
+    hideChallenge();
+    show($('oppPanel'));
+    $('oppName').textContent = msg.opponentName || 'Opponent';
+    $('vsName').textContent = `vs ${msg.opponentName || 'Opponent'}`;
+    goto('game');
+    game = buildGame(true, () => {});  // result driven by server win/lose
+    game.start(msg.seed);
+  });
+  net.on('oppState', (msg) => { if (game) game.setOppBoard(msg.board); });
+  net.on('garbage', (msg) => { if (game) game.receiveGarbage(msg.amount); });
+  net.on('win', (msg) => { endMatch(true, null, msg.ratingChange); refreshProfile(); });
+  net.on('lose', (msg) => { endMatch(false, null, msg.ratingChange); refreshProfile(); });
+  net.on('oppLeft', () => endMatch(true, 'Opponent left the match.'));
+
+  // challenges
+  net.on('challenged', (msg) => showChallenge(msg));
+  net.on('challengeSent', (msg) => toast(`Challenge sent to ${msg.toName} ⚔`));
+  net.on('challengeDeclined', (msg) => toast(`${msg.name} declined your challenge`));
+  net.on('challengeFailed', (msg) => toast(msg.error || 'Challenge failed'));
+  net.on('presence', (msg) => markOnline(msg.online || []));
+
+  net.on('close', () => {
+    if (mode === 'versus' && !screens.searching.classList.contains('hidden')) {
+      $('searchText').textContent = 'Disconnected. Reconnecting…';
+    }
+    // keep presence/challenges alive: reconnect while still logged in
+    if (me && !loggingOut) setTimeout(ensureNet, 2000);
+  });
+}
+
+// Resolves true once the socket is open (and we've announced ourselves).
+function ensureNet() {
+  return new Promise((resolve) => {
+    if (net && net.ws && net.ws.readyState === WebSocket.OPEN) return resolve(true);
+    if (netConnecting) return resolve(false);
+    netConnecting = true;
+    net = new Net();
+    registerNetHandlers();
+    net.connect()
+      .then(() => { net.send({ type: 'hello', token: auth.token() }); netConnecting = false; resolve(true); })
+      .catch(() => { netConnecting = false; resolve(false); });
+  });
+}
+
 function teardownNet() {
   if (net && net.ws) { try { net.ws.close(); } catch {} }
   net = null;
 }
+
+// Mark which friend rows are currently online (green dot on their avatar).
+function markOnline(ids) {
+  const set = new Set(ids);
+  document.querySelectorAll('#friendList .person[data-uid]').forEach((el) => {
+    el.classList.toggle('online', set.has(el.dataset.uid));
+  });
+}
+
+// ---- Toast + challenge modal --------------------------------------------
+let toastTimer = null;
+function toast(text) {
+  const t = $('toast');
+  t.textContent = text;
+  t.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+function showChallenge(msg) {
+  incomingChallenge = { challengeId: msg.challengeId, fromName: msg.fromName };
+  $('chName').textContent = msg.fromName || 'Someone';
+  $('chAv').textContent = (msg.fromName?.[0] || '?').toUpperCase();
+  $('challengeModal').classList.remove('hidden');
+}
+function hideChallenge() { $('challengeModal').classList.add('hidden'); incomingChallenge = null; }
+
+function respondChallenge(accept) {
+  if (!incomingChallenge || !net) return hideChallenge();
+  net.send({ type: 'challengeRespond', challengeId: incomingChallenge.challengeId, accept });
+  hideChallenge();
+  if (accept) { mode = 'versus'; goto('searching'); $('searchText').textContent = 'Starting match…'; }
+}
+
+async function challengeFriend(userId, name) {
+  const ok = await ensureNet();
+  if (!ok) return toast('Not connected to server');
+  net.send({ type: 'challenge', toUserId: userId });
+}
+
+$('chAccept').addEventListener('click', () => respondChallenge(true));
+$('chDecline').addEventListener('click', () => respondChallenge(false));
 
 function endMatch(won, note, ratingChange) {
   if (game) game.stop();
@@ -142,7 +243,7 @@ function endMatch(won, note, ratingChange) {
 // ---- Solo ----------------------------------------------------------------
 function startSolo() {
   mode = 'solo';
-  teardownNet();
+  if (net) net.send({ type: 'leave' });   // drop any queue/room, keep the socket
   hide($('oppPanel'));
   $('vsName').textContent = 'Practice';
   goto('game');
@@ -153,36 +254,14 @@ function startSolo() {
   game.start((Math.random() * 2 ** 31) >>> 0);
 }
 
-// ---- Versus --------------------------------------------------------------
+// ---- Versus (quick match) -----------------------------------------------
 async function startVersus() {
   mode = 'versus';
   goto('searching');
   $('searchText').textContent = 'Connecting…';
-
-  net = new Net();
-  try { await net.connect(); }
-  catch { $('searchText').textContent = 'Could not reach server. Is it running?'; return; }
-
-  net.on('queued', () => { $('searchText').textContent = 'Waiting for an opponent…'; });
-  net.on('matched', (msg) => {
-    show($('oppPanel'));
-    $('oppName').textContent = msg.opponentName || 'Opponent';
-    $('vsName').textContent = `vs ${msg.opponentName || 'Opponent'}`;
-    goto('game');
-    game = buildGame(true, () => {});  // result driven by server win/lose
-    game.start(msg.seed);
-  });
-  net.on('oppState', (msg) => { if (game) game.setOppBoard(msg.board); });
-  net.on('garbage', (msg) => { if (game) game.receiveGarbage(msg.amount); });
-  net.on('win', (msg) => { endMatch(true, null, msg.ratingChange); refreshProfile(); });
-  net.on('lose', (msg) => { endMatch(false, null, msg.ratingChange); refreshProfile(); });
-  net.on('oppLeft', () => endMatch(true, 'Opponent left the match.'));
-  net.on('close', () => {
-    if (mode === 'versus' && !screens.searching.classList.contains('hidden')) {
-      $('searchText').textContent = 'Disconnected from server.';
-    }
-  });
-
+  const ok = await ensureNet();
+  if (!ok) { $('searchText').textContent = 'Could not reach server. Is it running?'; return; }
+  $('searchText').textContent = 'Waiting for an opponent…';
   net.send({ type: 'queue', name: me?.username, token: auth.token() });
 }
 
@@ -279,7 +358,7 @@ function personRow(u, actions) {
     ? `style="background-image:url('${u.avatar}')" class="person-av has-img"`
     : `class="person-av"`;
   const initial = u.avatar ? '' : (u.username[0] || '?').toUpperCase();
-  return `<div class="person">
+  return `<div class="person" data-uid="${u.id}">
     <div ${img}>${initial}</div>
     <div class="person-info"><b>${u.username}</b><span>${u.rating} rating${u.isGuest ? ' · guest' : ''}</span></div>
     <div class="person-actions">${actions}</div>
@@ -320,8 +399,12 @@ async function renderRequestsAndFriends() {
     const { friends } = await api.friends();
     $('friendList').innerHTML = friends.length
       ? friends.map((u) => personRow(u,
+          `<button class="btn small primary" data-act="challenge" data-id="${u.id}" data-name="${u.username}">⚔ Challenge</button>` +
           `<button class="btn small ghost" data-act="remove" data-id="${u.id}">Remove</button>`)).join('')
       : '<p class="muted empty">No friends yet — search above to add some.</p>';
+    // light up who's online
+    const ids = friends.map((f) => f.id);
+    if (ids.length) ensureNet().then((ok) => { if (ok) net.send({ type: 'presence', ids }); });
   } catch {}
 }
 
@@ -355,7 +438,8 @@ $('friendSearch').addEventListener('input', (e) => {
 $('friends').addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-act]');
   if (!btn) return;
-  const { act, id, username } = btn.dataset;
+  const { act, id, username, name } = btn.dataset;
+  if (act === 'challenge') { challengeFriend(id, name); return; }
   btn.disabled = true;
   try {
     if (act === 'add')      await api.sendFriendRequest(username);
@@ -381,19 +465,17 @@ $('versusBtn').addEventListener('click', startVersus);
 $('leaderboardBtn').addEventListener('click', openLeaderboard);
 $('lbBack').addEventListener('click', () => goto('menu'));
 $('cancelSearch').addEventListener('click', () => {
-  if (net) net.send({ type: 'leave' });
-  teardownNet();
+  if (net) net.send({ type: 'leave' });   // leave the queue, stay online
   goto('menu');
 });
 $('againBtn').addEventListener('click', () => {
   if (game) game.destroy();
-  teardownNet();
+  refreshFriendBadge();
   goto('menu');
 });
 $('quitBtn').addEventListener('click', () => {
   if (game) { game.stop(); game.destroy(); }
-  if (net) net.send({ type: 'leave' });
-  teardownNet();
+  if (net) net.send({ type: 'leave' });   // leave the room, stay online
   goto('menu');
 });
 

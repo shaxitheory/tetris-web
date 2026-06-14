@@ -8,6 +8,22 @@
 </head>
 <body>
   <button id="muteBtn" class="mute-btn" aria-label="Toggle sound" title="Toggle sound">🔊</button>
+
+  <!-- Incoming challenge popup -->
+  <div id="challengeModal" class="challenge-modal hidden">
+    <div class="challenge-card">
+      <div class="challenge-av" id="chAv">?</div>
+      <p><b id="chName">Someone</b> challenged you to a 1v1!</p>
+      <div class="challenge-actions">
+        <button id="chAccept" class="btn primary">⚔ Accept</button>
+        <button id="chDecline" class="btn ghost">Decline</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transient notifications -->
+  <div id="toast" class="toast hidden"></div>
+
   <div id="app">
 
     <!-- AUTH -->
