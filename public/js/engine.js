@@ -4,6 +4,10 @@
 export const COLS = 10;
 export const ROWS = 20;
 
+// Most garbage that can rise on a single piece lock; the rest waits for the
+// next no-clear lock so you're never buried instantly by one huge attack.
+const MAX_GARBAGE_PER_DROP = 8;
+
 // Piece colors (index 1..7 maps to pieces; 8 = garbage).
 export const COLORS = {
   I: '#22d3ee', O: '#facc15', T: '#a855f7', S: '#4ade80',
@@ -307,7 +311,7 @@ export class Tetris {
       attack += comboTable[Math.min(this.combo, comboTable.length - 1)];
     }
 
-    if (perfectClear) { attack += 10; this.score += 3000; }
+    if (perfectClear) { attack += 4; this.score += 3000; }
 
     if (attack > 0 && cleared > 0) {
       // outgoing attack cancels pending incoming garbage first
@@ -327,21 +331,22 @@ export class Tetris {
   }
 
   dumpGarbage() {
-    const n = this.pendingGarbage.length;
-    if (n === 0) return;
+    if (this.pendingGarbage.length === 0) return;
+    // Only up to MAX_GARBAGE_PER_DROP rises now; the rest stays queued.
+    const n = Math.min(this.pendingGarbage.length, MAX_GARBAGE_PER_DROP);
+    const lines = this.pendingGarbage.splice(0, n);
     // Garbage rises from the bottom, shoving the stack up by n rows. It's a top
     // out only if a filled cell in the top n rows would be pushed off the board.
     let overflow = false;
     for (let r = 0; r < n && r < ROWS; r++) {
       if (this.board[r].some((c) => c)) { overflow = true; break; }
     }
-    for (const hole of this.pendingGarbage) {
+    for (const hole of lines) {
       this.board.shift();
       const row = new Array(COLS).fill(COLORS.G);
       row[hole] = null;
       this.board.push(row);
     }
-    this.pendingGarbage = [];
     if (overflow) {
       this.gameOver = true;
       this.cb.onGameOver && this.cb.onGameOver();
