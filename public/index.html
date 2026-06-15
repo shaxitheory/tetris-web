@@ -179,7 +179,9 @@
 
     <!-- GAME -->
     <section id="game" class="screen hidden">
-      <div class="vs-header"><span id="vsName">Practice</span></div>
+      <div class="vs-header"><span id="vsName">Practice</span>
+        <button id="pauseBtn" class="btn small ghost hidden">⏸ Pause</button>
+      </div>
       <div class="arena">
         <div class="side">
           <div class="panel">
@@ -195,6 +197,10 @@
 
         <div class="board-wrap">
           <canvas id="board" width="300" height="600"></canvas>
+          <div id="pauseOverlay" class="pause-overlay hidden">
+            <div class="pause-title">PAUSED</div>
+            <div class="pause-sub">Tap or press P to resume</div>
+          </div>
         </div>
 
         <div class="side">

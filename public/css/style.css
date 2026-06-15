@@ -130,11 +130,33 @@ kbd {
 .stats b { font-size: 1.4rem; color: var(--accent); }
 
 .board-wrap {
+  position: relative;
   border: 2px solid #2a3346;
   border-radius: 8px;
   box-shadow: 0 0 50px rgba(34, 211, 238, 0.12), inset 0 0 40px rgba(0,0,0,0.6);
   line-height: 0;
 }
+
+/* Pause */
+.vs-header { display: flex; align-items: center; justify-content: center; gap: 12px; }
+#pauseBtn { line-height: 1.2; }
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  background: rgba(10, 14, 26, 0.82);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+  z-index: 5;
+  line-height: 1.2;
+}
+.pause-title { font-size: 1.6rem; font-weight: 800; letter-spacing: 0.15em; color: var(--text); }
+.pause-sub { font-size: 0.85rem; color: var(--muted); }
 /* Scale the board down to fit the viewport height (keeps its 1:2 shape) so the
    bottom rows are never clipped on shorter desktop screens. */
 #board {

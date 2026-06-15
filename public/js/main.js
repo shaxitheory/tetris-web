@@ -121,8 +121,16 @@ function statsSink(s) {
 function buildGame(withNet, onEnd) {
   return new Game({
     canvas: $('board'), holdCanvas: $('hold'), nextCanvas: $('next'), oppCanvas: $('oppBoard'),
-    net: withNet ? net : null, onStats: statsSink, onEnd,
+    net: withNet ? net : null, onStats: statsSink, onEnd, onPause: showPaused,
   });
+}
+
+// Reflect the game's paused state in the UI (overlay + button label).
+function showPaused(paused) {
+  const overlay = $('pauseOverlay');
+  const btn = $('pauseBtn');
+  if (paused) { show(overlay); } else { hide(overlay); }
+  btn.textContent = paused ? '▶ Resume' : '⏸ Pause';
 }
 
 // ---- Persistent lobby connection ----------------------------------------
@@ -138,6 +146,7 @@ function registerNetHandlers() {
     mode = 'versus';
     hideChallenge();
     show($('oppPanel'));
+    hide($('pauseBtn'));
     $('oppName').textContent = msg.opponentName || 'Opponent';
     $('vsName').textContent = `vs ${msg.opponentName || 'Opponent'}`;
     goto('game');
@@ -260,6 +269,7 @@ function startSolo() {
   mode = 'solo';
   if (net) net.send({ type: 'leave' });   // drop any queue/room, keep the socket
   hide($('oppPanel'));
+  show($('pauseBtn'));                     // pausing only makes sense in solo
   $('vsName').textContent = 'Practice';
   goto('game');
   game = buildGame(false, async () => {
@@ -567,6 +577,10 @@ $('quitBtn').addEventListener('click', () => {
   if (net) net.send({ type: 'leave' });   // leave the match, stay online
   if (room) { renderRoom(); goto('room'); } else goto('menu');
 });
+
+// ---- Pause (solo) --------------------------------------------------------
+$('pauseBtn').addEventListener('click', () => { if (game) game.togglePause(); });
+$('pauseOverlay').addEventListener('click', () => { if (game) game.togglePause(); });
 
 // ---- Touch controls (bound once; they target whatever game is active) ----
 function bindTouchControls() {

@@ -18,7 +18,7 @@ const PREVIEW = {
 };
 
 export class Game {
-  constructor({ canvas, holdCanvas, nextCanvas, oppCanvas, net, onStats, onEnd }) {
+  constructor({ canvas, holdCanvas, nextCanvas, oppCanvas, net, onStats, onEnd, onPause }) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.holdCtx = holdCanvas.getContext('2d');
@@ -27,9 +27,11 @@ export class Game {
     this.net = net;
     this.onStats = onStats || (() => {});
     this.onEnd = onEnd || (() => {});
+    this.onPause = onPause || (() => {});
     this.cell = Math.floor(canvas.width / COLS);
     this.oppBoard = null;
     this.running = false;
+    this.paused = false;
     this.keys = {};
     this._bindInput();
   }
@@ -41,23 +43,43 @@ export class Game {
       onLock: (info) => this._onLock(info),
     });
     this.running = true;
+    this.paused = false;
     this.lastTime = performance.now();
     this.stateTimer = 0;
     this.attackFlash = 0;
     audio.startMusic();
+    this.onPause(false);
     this._loop();
   }
 
   end() {
     if (!this.running) return;
     this.running = false;
+    this.paused = false;
+    this.onPause(false);
     if (this.net) {
       this.net.send({ type: 'gameover', score: this.engine.score, lines: this.engine.lines });
     }
     this.onEnd();
   }
 
-  stop() { this.running = false; }
+  stop() { this.running = false; this.paused = false; this.onPause(false); }
+
+  // Pause is only meaningful when there's no opponent waiting on us (solo).
+  canPause() { return !this.net; }
+
+  togglePause() {
+    if (!this.running || !this.canPause()) return;
+    this.paused = !this.paused;
+    if (this.paused) {
+      audio.stopMusic();
+      this.keys = {};               // drop any held movement so it can't auto-repeat on resume
+    } else {
+      audio.startMusic();
+      this.lastTime = performance.now();   // avoid a huge dt jump after the pause
+    }
+    this.onPause(this.paused);
+  }
 
   flash(amt) { this.attackFlash = Math.min(1, this.attackFlash + amt * 0.2); }
 
@@ -70,6 +92,13 @@ export class Game {
     this.handleKeyDown = (e) => {
       if (!this.running) return;
       const k = e.key.toLowerCase();
+      // P or Esc toggles pause (solo only); works even while already paused.
+      if ((k === 'p' || k === 'escape') && this.canPause()) {
+        e.preventDefault();
+        this.togglePause();
+        return;
+      }
+      if (this.paused) return;
       if (['arrowleft','arrowright','arrowdown','arrowup',' '].includes(e.key.toLowerCase()) ||
           [' '].includes(e.key)) e.preventDefault();
       if (e.repeat) return;
@@ -107,7 +136,7 @@ export class Game {
   // Called by the on-screen touch buttons. phase is 'start' or 'end'.
   // Movement buttons reuse the keyboard DAS/ARR state so holding repeats.
   touchAction(act, phase) {
-    if (!this.engine || !this.running) return;
+    if (!this.engine || !this.running || this.paused) return;
     const eng = this.engine;
     if (phase === 'start') {
       switch (act) {
@@ -153,6 +182,9 @@ export class Game {
     const now = performance.now();
     const dt = Math.min(now - this.lastTime, 100);
     this.lastTime = now;
+
+    // While paused the board stays frozen but visible; just keep the frame alive.
+    if (this.paused) { requestAnimationFrame(() => this._loop()); return; }
 
     this._handleAutoRepeat(dt);
     this.engine.tick(dt);
