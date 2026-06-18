@@ -1,7 +1,11 @@
 # TETRA — Multiplayer Tetris
 
+**▶ Play live: [tetra-su92.onrender.com](https://tetra-su92.onrender.com)**
+
 A real-time 1v1 multiplayer Tetris in the browser, inspired by tetr.io/jstris.
 Pure JavaScript (no game framework), HTML5 Canvas, and a Node WebSocket server.
+
+> Hosted on Render's free tier — the first visit after a while may take ~30s to wake the server.
 
 ## Features
 
