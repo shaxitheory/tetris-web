@@ -3,6 +3,7 @@ import { Game } from './game.js';
 import { Net } from './net.js';
 import { api, auth } from './api.js';
 import { audio } from './audio.js';
+import { THEMES, applyTheme, currentThemeId, savedThemeId } from './themes.js';
 
 const $ = (id) => document.getElementById(id);
 const show = (el) => el.classList.remove('hidden');
@@ -599,6 +600,36 @@ function bindTouchControls() {
   });
 }
 bindTouchControls();
+
+// ---- Theme picker --------------------------------------------------------
+// Build one card per theme, each previewing four of its tetromino colors.
+function buildThemePicker() {
+  const picker = $('themePicker');
+  picker.innerHTML = Object.entries(THEMES).map(([id, t]) => {
+    const sw = [t.pieces.I, t.pieces.T, t.pieces.S, t.pieces.L]
+      .map((c) => `<span class="theme-sw" style="background:${c}"></span>`).join('');
+    return `<button class="theme-card" data-theme="${id}" title="${t.name} theme">
+      <span class="theme-swatches">${sw}</span>
+      <span class="theme-name">${t.name}</span>
+    </button>`;
+  }).join('');
+  picker.addEventListener('click', (e) => {
+    const card = e.target.closest('[data-theme]');
+    if (card) selectTheme(card.dataset.theme);
+  });
+}
+
+function selectTheme(id) {
+  applyTheme(id);
+  const name = THEMES[id]?.name || '';
+  $('themeCurrent').textContent = name;
+  document.querySelectorAll('#themePicker .theme-card').forEach((c) =>
+    c.classList.toggle('active', c.dataset.theme === id));
+  if (game) game._render && game.running && game._render();   // repaint board if mid-game
+}
+
+buildThemePicker();
+selectTheme(savedThemeId());
 
 // ---- Sound ---------------------------------------------------------------
 const muteBtn = $('muteBtn');

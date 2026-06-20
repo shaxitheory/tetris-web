@@ -1,6 +1,7 @@
 // Rendering, input handling, game loop. Wires the engine to the network.
 import { Tetris, COLS, ROWS, COLORS } from './engine.js';
 import { audio } from './audio.js';
+import { BOARD } from './themes.js';
 
 const DAS = 120;   // delayed auto shift (ms)
 const ARR = 18;    // auto repeat rate (ms)
@@ -236,11 +237,11 @@ export class Game {
 
   _render() {
     const ctx = this.ctx, cell = this.cell;
-    ctx.fillStyle = '#0a0e1a';
+    ctx.fillStyle = BOARD.bg;
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     // grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = BOARD.grid;
     ctx.lineWidth = 1;
     for (let c = 0; c <= COLS; c++) {
       ctx.beginPath(); ctx.moveTo(c * cell, 0); ctx.lineTo(c * cell, ROWS * cell); ctx.stroke();
@@ -328,7 +329,7 @@ export class Game {
     if (!this.oppCtx) return;
     const ctx = this.oppCtx;
     const cell = ctx.canvas.width / COLS;
-    ctx.fillStyle = '#0a0e1a';
+    ctx.fillStyle = BOARD.bg;
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     if (!this.oppBoard) return;
     for (let r = 0; r < ROWS; r++) {
