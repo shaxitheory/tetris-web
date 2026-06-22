@@ -7,6 +7,9 @@ const DAS = 120;   // delayed auto shift (ms)
 const ARR = 18;    // auto repeat rate (ms)
 const SOFT = 25;   // soft drop repeat (ms)
 
+const INK = '#1e1b19';            // brutalist block border ink
+const GHOST = 'rgba(0,99,132,0.55)'; // dashed ghost outline (primary teal)
+
 // preview shapes for hold/next rendering (state 0 cells)
 const PREVIEW = {
   I: [[1,0],[1,1],[1,2],[1,3]],
@@ -223,60 +226,36 @@ export class Game {
   }
 
   // ---- rendering ---------------------------------------------------------
-  // Rounded-rect path helper (avoids relying on ctx.roundRect for old engines).
-  _rrect(ctx, x, y, w, h, r) {
-    r = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
+  // "Concrete block" cell from the BLOCK_COMMAND design: a flat architectural
+  // fill, a heavy ink border (2px), and a thin inner highlight inset — the same
+  // construction as the brutalist .concrete-block in the UI.
+  _drawCell(ctx, x, y, size, color) {
+    // flat fill
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, size, size);
+
+    // heavy ink border
+    const bw = Math.max(2, Math.round(size * 0.07));
+    ctx.lineWidth = bw;
+    ctx.strokeStyle = INK;
+    ctx.strokeRect(x + bw / 2, y + bw / 2, size - bw, size - bw);
+
+    // inner highlight inset (top-left catch of light)
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,0.40)';
+    const i = bw + 1;
+    ctx.strokeRect(x + i + 0.5, y + i + 0.5, size - i * 2 - 1, size - i * 2 - 1);
   }
 
-  // Glossy, beveled tetromino cell — gives the blocks a realistic, tactile feel:
-  // rounded body, top sheen highlight, bottom drop-shade, and a soft inner border.
-  _drawCell(ctx, x, y, size, color) {
-    const inset = Math.max(0.5, size * 0.055);
-    const bx = x + inset, by = y + inset, bs = size - inset * 2;
-    const r = Math.max(2, size * 0.2);
-
+  // Ghost piece: hollow dashed outline in the primary teal (matches the Stitch
+  // dashed ghost indicator) rather than a translucent fill.
+  _drawGhost(ctx, x, y, size) {
     ctx.save();
-    this._rrect(ctx, bx, by, bs, bs, r);
-    ctx.clip();
-
-    // base color
-    ctx.fillStyle = color;
-    ctx.fillRect(bx, by, bs, bs);
-
-    // top-to-bottom gloss: bright sheen up top fading to a shaded base
-    const g = ctx.createLinearGradient(0, by, 0, by + bs);
-    g.addColorStop(0, 'rgba(255,255,255,0.40)');
-    g.addColorStop(0.14, 'rgba(255,255,255,0.12)');
-    g.addColorStop(0.5, 'rgba(255,255,255,0.00)');
-    g.addColorStop(0.84, 'rgba(0,0,0,0.12)');
-    g.addColorStop(1, 'rgba(0,0,0,0.34)');
-    ctx.fillStyle = g;
-    ctx.fillRect(bx, by, bs, bs);
-
-    // soft corner glint, top-left
-    const rg = ctx.createRadialGradient(bx + bs * 0.28, by + bs * 0.24, 0, bx + bs * 0.28, by + bs * 0.24, bs * 0.7);
-    rg.addColorStop(0, 'rgba(255,255,255,0.30)');
-    rg.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = rg;
-    ctx.fillRect(bx, by, bs, bs);
+    ctx.setLineDash([4, 3]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = GHOST;
+    ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
     ctx.restore();
-
-    // crisp bevel border
-    this._rrect(ctx, bx + 0.5, by + 0.5, bs - 1, bs - 1, r);
-    ctx.lineWidth = Math.max(1, size * 0.04);
-    ctx.strokeStyle = 'rgba(0,0,0,0.30)';
-    ctx.stroke();
   }
 
   _render() {
@@ -306,11 +285,9 @@ export class Game {
     if (!eng.gameOver) {
       const gy = eng.ghostY();
       const ghost = { ...eng.piece, y: gy };
-      ctx.globalAlpha = 0.25;
       for (const [r, c] of eng.cells(ghost)) {
-        if (r >= 0) this._drawCell(ctx, c * cell, r * cell, cell, COLORS[eng.piece.type]);
+        if (r >= 0) this._drawGhost(ctx, c * cell, r * cell, cell);
       }
-      ctx.globalAlpha = 1;
       // active piece
       for (const [r, c] of eng.cells(eng.piece)) {
         if (r >= 0) this._drawCell(ctx, c * cell, r * cell, cell, COLORS[eng.piece.type]);

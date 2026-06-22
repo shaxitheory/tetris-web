@@ -13,6 +13,21 @@ import { COLORS } from './engine.js';
 export const BOARD = { bg: '#0a0e1a', grid: 'rgba(255,255,255,0.04)' };
 
 export const THEMES = {
+  command: {
+    name: 'Concrete',
+    // Architectural palette from the BLOCK_COMMAND design system (Material light).
+    pieces: { I: '#006687', O: '#ba1a1a', T: '#006384', S: '#4a4643', Z: '#a36700', J: '#004d67', L: '#825100', G: '#6f787e' },
+    board: { bg: '#ffffff', grid: 'rgba(111,120,126,0.18)' },
+    vars: {
+      '--bg': '#fff8f5', '--bg-glow': '#e9e1dd',
+      '--panel': '#fff8f5', '--panel-2': '#f4ece8',
+      '--accent': '#006384', '--accent-2': '#825100',
+      '--text': '#1e1b19', '--muted': '#3f484d',
+      '--border': '#1e1b19', '--border-soft': '#bfc8ce',
+      '--on-accent': '#ffffff', '--glow': 'rgba(0,99,132,0.30)',
+    },
+  },
+
   neon: {
     name: 'Neon',
     pieces: { I: '#22d3ee', O: '#facc15', T: '#a855f7', S: '#4ade80', Z: '#f87171', J: '#3b82f6', L: '#fb923c', G: '#6b7280' },
@@ -100,8 +115,8 @@ export const THEMES = {
   },
 };
 
-export const DEFAULT_THEME = 'neon';
-const STORE_KEY = 'tetra.theme';
+export const DEFAULT_THEME = 'command';
+const STORE_KEY = 'tetra.theme.v2';
 
 export function savedThemeId() {
   const id = localStorage.getItem(STORE_KEY);

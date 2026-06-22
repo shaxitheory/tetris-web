@@ -30,9 +30,21 @@ function paintAvatar(el, user) {
     el.textContent = (user?.username?.[0] || '?').toUpperCase();
   }
 }
+// Which sidebar/mobile nav item lights up for each screen.
+const NAV_FOR_SCREEN = {
+  menu: 'play', game: 'play', searching: 'play', result: 'play', profile: 'play',
+  leaderboard: 'leaderboard', friends: 'friends', room: 'room',
+};
+function updateNav(name) {
+  const active = NAV_FOR_SCREEN[name] || 'play';
+  document.querySelectorAll('.nav-item, .mnav-item').forEach((el) =>
+    el.classList.toggle('active', el.dataset.nav === active));
+}
+
 function goto(name) {
   for (const s of Object.values(screens)) hide(s);
   show(screens[name]);
+  updateNav(name);
 }
 
 let game = null;
@@ -47,6 +59,8 @@ function renderProfile() {
   $('profileName').textContent = me.username + (me.isGuest ? ' (guest)' : '');
   $('profileMeta').textContent = `${me.rating} · ${me.wins}W / ${me.losses}L · best ${me.bestScore}`;
   paintAvatar($('avatar'), me);
+  const top = $('topAvatar');
+  if (top) paintAvatar(top, me);
 }
 
 async function refreshProfile() {
@@ -56,6 +70,7 @@ async function refreshProfile() {
 function enterMenu(user) {
   me = user;
   auth.save(null, user);
+  document.body.classList.add('in-app');   // reveal sidebar + top app bar chrome
   renderProfile();
   refreshFriendBadge();
   ensureNet();               // go online so friends can challenge us
@@ -103,14 +118,16 @@ $('guestBtn').addEventListener('click', async () => {
   }
 });
 
-$('logoutBtn').addEventListener('click', () => {
+function doLogout() {
   loggingOut = true;
   teardownNet();
   loggingOut = false;
   auth.clear();
   me = null;
+  document.body.classList.remove('in-app');   // hide chrome back on the auth screen
   goto('auth');
-});
+}
+$('logoutBtn').addEventListener('click', doLogout);
 
 // ---- Stats sink ----------------------------------------------------------
 function statsSink(s) {
@@ -403,9 +420,12 @@ async function refreshFriendBadge() {
   try {
     const { requests } = await api.friendRequests();
     const n = requests.length;
-    const badge = $('friendsBadge');
-    badge.textContent = n;
-    badge.classList.toggle('hidden', n === 0);
+    for (const id of ['friendsBadge', 'navFriendsBadge']) {
+      const badge = $(id);
+      if (!badge) continue;
+      badge.textContent = n;
+      badge.classList.toggle('hidden', n === 0);
+    }
     return requests;
   } catch { return []; }
 }
@@ -646,6 +666,28 @@ function unlockAudio() {
 }
 window.addEventListener('pointerdown', unlockAudio);
 window.addEventListener('keydown', unlockAudio);
+
+// ---- Chrome (sidebar / top app bar / mobile nav) -------------------------
+// The brutalist BLOCK_COMMAND chrome is persistent once logged in; these wire
+// its controls to the existing navigation actions. Safe no-ops if absent.
+function on(id, fn) { const el = $(id); if (el) el.addEventListener('click', fn); }
+
+on('navPlay', () => goto('menu'));
+on('navLeaderboard', openLeaderboard);
+on('navFriends', openFriends);
+on('navRoom', openRoom);
+on('navSettings', () => { goto('menu'); toast('Settings module is offline'); });
+on('newStructureBtn', startSolo);
+on('startGridBtn', startVersus);
+on('sideProfile', openProfile);
+on('sideLogout', doLogout);
+on('topTraining', () => toast('Training module is offline'));
+on('topSocial', openFriends);
+
+// Mobile bottom-nav: route by data-nav.
+const mobileRoutes = { play: () => goto('menu'), leaderboard: openLeaderboard, room: openRoom, settings: () => goto('menu') };
+document.querySelectorAll('.mnav-item').forEach((el) =>
+  el.addEventListener('click', () => (mobileRoutes[el.dataset.nav] || (() => {}))()));
 
 // ---- Boot ----------------------------------------------------------------
 async function boot() {

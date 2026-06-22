@@ -1,25 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#070a14" />
-  <title>TETRA · Multiplayer Tetris</title>
+  <meta name="theme-color" content="#fff8f5" />
+  <title>CONCRETE TETRIS · BLOCK_COMMAND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <!-- Ambient cinematic backdrop: slow-drifting accent blobs (decorative) -->
-  <div class="ambient" aria-hidden="true">
-    <span class="blob blob-1"></span>
-    <span class="blob blob-2"></span>
-    <span class="blob blob-3"></span>
-    <span class="grain"></span>
-  </div>
+  <!-- Concrete-grain texture wash over the whole app -->
+  <div class="bg-texture" aria-hidden="true"></div>
 
-  <button id="muteBtn" class="mute-btn" aria-label="Toggle sound" title="Toggle sound">🔊</button>
+  <!-- ===== Persistent chrome (shown once logged in: body.in-app) ===== -->
+  <aside class="sidebar" id="sidebar" aria-label="Primary">
+    <div class="sidebar-brand">
+      <h1>CONCRETE<br>TETRIS</h1>
+      <p>V 1.0.4 — STABLE</p>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" id="navPlay" data-nav="play"><span class="material-symbols-outlined">sports_esports</span><span>Play</span></button>
+      <button class="nav-item" id="navLeaderboard" data-nav="leaderboard"><span class="material-symbols-outlined">leaderboard</span><span>Leaderboard</span></button>
+      <button class="nav-item" id="navFriends" data-nav="friends"><span class="material-symbols-outlined">groups</span><span>Syndicate</span><span id="navFriendsBadge" class="badge hidden">0</span></button>
+      <button class="nav-item" id="navRoom" data-nav="room"><span class="material-symbols-outlined">meeting_room</span><span>Rooms</span></button>
+      <button class="nav-item" id="navSettings" data-nav="settings"><span class="material-symbols-outlined">settings</span><span>Settings</span></button>
+    </nav>
+    <div class="sidebar-foot">
+      <button class="btn block" id="newStructureBtn"><span class="material-symbols-outlined">add</span> NEW STRUCTURE</button>
+      <button class="side-link" id="sideProfile"><span class="material-symbols-outlined">person</span> Profile</button>
+      <button class="side-link danger" id="sideLogout"><span class="material-symbols-outlined">logout</span> Logout</button>
+    </div>
+  </aside>
+
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <span class="wordmark">BLOCK_COMMAND</span>
+      <nav class="topbar-nav">
+        <a class="active">Arena</a>
+        <a id="topTraining">Training</a>
+        <a id="topSocial">Social</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span class="sys-chip"><span class="material-symbols-outlined">sensors</span><span id="sysStatus">SYSTEM: IDLE</span></span>
+      <button class="btn primary" id="startGridBtn">START_GRID</button>
+      <button id="muteBtn" class="icon-btn" aria-label="Toggle sound" title="Toggle sound">🔊</button>
+      <button class="avatar topbar-avatar" id="topAvatar" title="Profile">?</button>
+    </div>
+  </header>
 
   <!-- Incoming challenge popup -->
   <div id="challengeModal" class="challenge-modal hidden">
@@ -40,8 +71,8 @@
 
     <!-- AUTH -->
     <section id="auth" class="screen hidden">
-      <h1 class="logo">TETRA</h1>
-      <p class="tagline">Sign in to track your stats &amp; ranking</p>
+      <h1 class="logo">CONCRETE TETRIS</h1>
+      <p class="tagline">// Authenticate to track your structural ranking</p>
 
       <div class="auth-tabs">
         <button id="tabLogin" class="tab active">Log in</button>
@@ -61,7 +92,11 @@
 
     <!-- MENU -->
     <section id="menu" class="screen hidden">
-      <h1 class="logo">TETRA</h1>
+      <div class="menu-hero">
+        <span class="kicker">DEPLOYMENT_READY</span>
+        <h2 class="hero-title">BUILD THE<br>MONOLITH</h2>
+        <div class="hero-rule"></div>
+      </div>
 
       <div class="profile-strip">
         <button class="avatar" id="avatar" title="Edit profile">?</button>
@@ -72,25 +107,49 @@
         <button id="logoutBtn" class="btn small ghost">Log out</button>
       </div>
 
-      <div class="menu-buttons">
-        <button id="versusBtn" class="btn primary">⚔ Play Online (1v1)</button>
-        <button id="roomBtn" class="btn">🚪 Private Room</button>
-        <button id="soloBtn" class="btn">▶ Solo Practice</button>
-        <button id="friendsBtn" class="btn">👥 Friends<span id="friendsBadge" class="badge hidden">0</span></button>
-        <button id="leaderboardBtn" class="btn">🏆 Leaderboard</button>
-        <button id="profileBtn" class="btn">😀 My Profile</button>
+      <div class="menu-grid">
+        <button id="versusBtn" class="action-card primary-card">
+          <span class="card-kicker"><span class="material-symbols-outlined">groups</span> NETWORKED_SYNDICATE</span>
+          <span class="card-title">Play Online</span>
+          <span class="card-sub">Real-time 1v1 structural warfare</span>
+        </button>
+        <button id="soloBtn" class="action-card">
+          <span class="card-kicker"><span class="material-symbols-outlined">play_circle</span> CAMPAIGN_MODE</span>
+          <span class="card-title">Solo Play</span>
+          <span class="card-sub">Construct across tactical zones</span>
+        </button>
+        <button id="roomBtn" class="action-card">
+          <span class="card-kicker"><span class="material-symbols-outlined">meeting_room</span> PRIVATE_ZONE</span>
+          <span class="card-title">Private Room</span>
+          <span class="card-sub">Build a lobby for your collective</span>
+        </button>
+        <button id="friendsBtn" class="action-card">
+          <span class="card-kicker"><span class="material-symbols-outlined">diversity_3</span> ROSTER</span>
+          <span class="card-title">Syndicate<span id="friendsBadge" class="badge hidden">0</span></span>
+          <span class="card-sub">Manage allies &amp; challenges</span>
+        </button>
+        <button id="leaderboardBtn" class="action-card">
+          <span class="card-kicker"><span class="material-symbols-outlined">leaderboard</span> RANKING</span>
+          <span class="card-title">Leaderboard</span>
+          <span class="card-sub">Global constructors</span>
+        </button>
+        <button id="profileBtn" class="action-card">
+          <span class="card-kicker"><span class="material-symbols-outlined">badge</span> OPERATOR</span>
+          <span class="card-title">My Profile</span>
+          <span class="card-sub">Stats &amp; identity</span>
+        </button>
       </div>
 
       <div class="theme-section">
         <div class="theme-head">
-          <h3>Theme</h3>
+          <h3>BLOCK_PALETTE</h3>
           <span class="theme-current" id="themeCurrent"></span>
         </div>
         <div id="themePicker" class="theme-picker"></div>
       </div>
 
       <div class="controls-help">
-        <h3>Controls</h3>
+        <h3>CONTROLS</h3>
         <ul>
           <li><kbd>←</kbd> <kbd>→</kbd> Move</li>
           <li><kbd>↓</kbd> Soft drop</li>
@@ -104,11 +163,11 @@
 
     <!-- LEADERBOARD -->
     <section id="leaderboard" class="screen hidden">
-      <h2>🏆 Leaderboard</h2>
+      <h2 class="screen-title">GLOBAL CONSTRUCTORS</h2>
       <div class="lb-wrap">
         <table class="lb-table">
           <thead>
-            <tr><th>#</th><th>Player</th><th>Rating</th><th>W</th><th>L</th><th>Best</th></tr>
+            <tr><th>#</th><th>Constructor</th><th>Rating</th><th>W</th><th>L</th><th>Best</th></tr>
           </thead>
           <tbody id="lbBody"></tbody>
         </table>
@@ -118,7 +177,7 @@
 
     <!-- PROFILE -->
     <section id="profile" class="screen hidden">
-      <h2>My Profile</h2>
+      <h2 class="screen-title">OPERATOR FILE</h2>
       <div class="profile-card">
         <div class="dp" id="dpImg">?</div>
         <div class="dp-actions">
@@ -140,28 +199,28 @@
 
     <!-- FRIENDS -->
     <section id="friends" class="screen hidden">
-      <h2>👥 Friends</h2>
+      <h2 class="screen-title">THE SYNDICATE</h2>
       <div class="friends-wrap">
-        <input id="friendSearch" class="friend-search" placeholder="Search players by username…" />
+        <input id="friendSearch" class="friend-search" placeholder="Search constructors by username…" />
         <div id="searchResults" class="person-list"></div>
 
         <h3 class="friend-section">Requests <span id="reqCount" class="muted"></span></h3>
         <div id="requestList" class="person-list"><p class="muted empty">No pending requests.</p></div>
 
-        <h3 class="friend-section">My Friends</h3>
-        <div id="friendList" class="person-list"><p class="muted empty">No friends yet — search above to add some.</p></div>
+        <h3 class="friend-section">My Allies</h3>
+        <div id="friendList" class="person-list"><p class="muted empty">No allies yet — search above to recruit.</p></div>
       </div>
       <button id="friendsBack" class="btn">Back</button>
     </section>
 
     <!-- ROOM -->
     <section id="room" class="screen hidden">
-      <h2>🚪 Private Room</h2>
+      <h2 class="screen-title">SOCIAL LOBBY</h2>
 
       <!-- before you're in a room -->
       <div id="roomEntry" class="room-entry">
-        <button id="roomCreate" class="btn primary">Create a Room</button>
-        <div class="room-or">or join with a code</div>
+        <button id="roomCreate" class="btn primary block">Create a Room</button>
+        <div class="room-or">// or join with a code</div>
         <form id="roomJoinForm" class="room-join">
           <input id="roomCodeInput" maxlength="4" placeholder="CODE" autocomplete="off" />
           <button type="submit" class="btn">Join</button>
@@ -172,13 +231,13 @@
       <!-- inside a room -->
       <div id="roomLobby" class="room-lobby hidden">
         <div class="room-head">
-          <div class="room-code">Code: <b id="roomCodeLabel">----</b>
+          <div class="room-code">CODE: <b id="roomCodeLabel">----</b>
             <button id="roomCopy" class="btn small ghost">Copy</button></div>
           <div id="roomMembers" class="room-members"></div>
         </div>
         <div id="chatLog" class="chat-log"></div>
         <form id="chatForm" class="chat-form" autocomplete="off">
-          <input id="chatInput" placeholder="Type a message…" maxlength="200" />
+          <input id="chatInput" placeholder="Transmit message…" maxlength="200" />
           <button type="submit" class="btn small primary">Send</button>
         </form>
         <div class="room-actions">
@@ -205,13 +264,13 @@
       <div class="arena">
         <div class="side">
           <div class="panel">
-            <h4>Hold</h4>
+            <h4>HOLD_BAY</h4>
             <canvas id="hold" width="96" height="72"></canvas>
           </div>
           <div class="panel stats">
-            <div><span>Score</span><b id="score">0</b></div>
-            <div><span>Lines</span><b id="lines">0</b></div>
-            <div><span>Incoming</span><b id="pending">0</b></div>
+            <div><span>SCORE</span><b id="score">0</b></div>
+            <div><span>LINES_CLEARED</span><b id="lines">0</b></div>
+            <div><span>INCOMING_RUBBLE</span><b id="pending">0</b></div>
           </div>
         </div>
 
@@ -225,10 +284,10 @@
 
         <div class="side">
           <div class="panel">
-            <h4>Next</h4>
+            <h4>NEXT_STRUCTURE</h4>
             <canvas id="next" width="96" height="240"></canvas>
           </div>
-          <button id="quitBtn" class="btn small">Quit</button>
+          <button id="quitBtn" class="btn small">TERMINATE</button>
         </div>
 
         <div class="side opp" id="oppPanel">
@@ -268,6 +327,15 @@
     </section>
 
   </div>
+
+  <!-- Mobile bottom navigation -->
+  <nav class="mobile-nav" id="mobileNav" aria-label="Primary mobile">
+    <button class="mnav-item active" data-nav="play"><span class="material-symbols-outlined">sports_esports</span><span>Play</span></button>
+    <button class="mnav-item" data-nav="leaderboard"><span class="material-symbols-outlined">leaderboard</span><span>Stats</span></button>
+    <button class="mnav-item" data-nav="room"><span class="material-symbols-outlined">meeting_room</span><span>Rooms</span></button>
+    <button class="mnav-item" data-nav="settings"><span class="material-symbols-outlined">settings</span><span>Menu</span></button>
+  </nav>
+
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
