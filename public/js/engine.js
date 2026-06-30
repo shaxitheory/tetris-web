@@ -8,6 +8,9 @@ export const ROWS = 20;
 // next no-clear lock so you're never buried instantly by one huge attack.
 const MAX_GARBAGE_PER_DROP = 8;
 
+// Difficulty ramp: gravity speeds up one level for every this-many lines cleared.
+const LINES_PER_LEVEL = 10;
+
 // Piece colors (index 1..7 maps to pieces; 8 = garbage).
 export const COLORS = {
   I: '#22d3ee', O: '#facc15', T: '#a855f7', S: '#4ade80',
@@ -108,6 +111,7 @@ export class Tetris {
     // scoring / attack state
     this.score = 0;
     this.lines = 0;
+    this.level = 1;             // ramps up every LINES_PER_LEVEL lines cleared
     this.combo = -1;
     this.b2b = false;
     this.pendingGarbage = [];   // queued garbage columns to insert
@@ -275,6 +279,7 @@ export class Tetris {
     if (cleared > 0) {
       this.combo++;
       this.lines += cleared;
+      this.updateLevel();
     } else {
       this.combo = -1;
       this.dumpGarbage(); // garbage only lands when you don't clear
@@ -353,7 +358,17 @@ export class Tetris {
     }
   }
 
+  // Bump the level when enough lines have been cleared, speeding up gravity.
+  updateLevel() {
+    const target = Math.floor(this.lines / LINES_PER_LEVEL) + 1;
+    if (target > this.level) {
+      this.setLevel(target);
+      this.cb.onLevelUp && this.cb.onLevelUp(this.level);
+    }
+  }
+
   setLevel(level) {
+    this.level = level;
     // classic-ish gravity curve
     this.gravityMs = Math.max(50, 1000 * Math.pow(0.8, level - 1));
   }

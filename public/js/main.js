@@ -132,6 +132,7 @@ $('logoutBtn').addEventListener('click', doLogout);
 // ---- Stats sink ----------------------------------------------------------
 function statsSink(s) {
   $('score').textContent = s.score;
+  $('level').textContent = s.level;
   $('lines').textContent = s.lines;
   $('pending').textContent = s.pending;
 }

@@ -44,6 +44,7 @@ export class Game {
     this.engine = new Tetris(seed, {
       onAttack: (amt) => { if (this.net) this.net.send({ type: 'garbage', amount: amt }); this.flash(amt); },
       onGameOver: () => { audio.gameOver(); this.end(); },
+      onLevelUp: () => this.flash(2),
       onLock: (info) => this._onLock(info),
     });
     this.running = true;
@@ -203,6 +204,7 @@ export class Game {
     this.onStats({
       score: this.engine.score,
       lines: this.engine.lines,
+      level: this.engine.level,
       pending: this.engine.pendingGarbage.length,
     });
 
